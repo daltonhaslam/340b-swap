@@ -138,7 +138,7 @@ export function mountStory(field, data, { onSelect }) {
     states() {
       // A ranked ledger: two columns of state strips, from the biggest loser (CMS net, all changes) to the biggest
       // gainer. Each strip packs the state's hospitals in R rows, the ones that get less first.
-      const P = { l: S.w < 600 ? 4 : 8, r: 8, t: 8, b: 30 };
+      const P = { l: S.w < 600 ? 4 : 8, r: 8, t: 32, b: 12 };  // top band keeps the legend clear of the first rows
       const by = new Map();
       hs.forEach((x, i) => { if (!by.has(x.st)) by.set(x.st, []); by.get(x.st).push(i); });
       const rows = [...by.entries()].map(([st, list]) => {
