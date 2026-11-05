@@ -13,10 +13,12 @@ const TYPE = {
 
 export function statusLine(x) {
   switch (x.status) {
-    case '340b': return `340B hospital: HRSA lists it as a participating ${TYPE[x.opType] || 'hospital'}${x.opStart ? ` (current registration since ${x.opStart})` : ''}.`;
+    case '340b': return x.opSched
+      ? `340B hospital: in 340B during 2025, and HRSA lists a new registration as a ${TYPE[x.opType] || 'hospital'} starting Jan. 1, 2027.`
+      : `340B hospital: HRSA lists it as a participating ${TYPE[x.opType] || 'hospital'}${x.opStart ? ` (current registration since ${x.opStart})` : ''}.`;
     case 'new': return 'In 340B when the cut starts, but not during 2025, the year of claims CMS used, so CMS’s estimate has no drug cut for it. Its actual 2027 is likely to be worse than shown.';
     case 'left': return 'In 340B during 2025, the year of claims CMS used, but not when the cut starts on Jan. 1, 2027. CMS’s estimate still carries the drug cut, so its actual 2027 is likely to be better than shown.';
-    case 'history': return 'Billed Medicare for 340B drugs in 2018–2022 (CMS remedy file), but not in 340B during 2025 or today.';
+    case 'history': return 'Billed Medicare for 340B drugs in 2018–2022 (CMS remedy file), but not in 340B during 2025 or when the cut starts.';
     case 'exempt': return 'Rural sole community hospital: exempt from the 340B drug cut.';
     case 'proprietary': return 'For-profit hospital: not eligible for 340B.';
     default: return 'Not a 340B hospital in HRSA or CMS records.';

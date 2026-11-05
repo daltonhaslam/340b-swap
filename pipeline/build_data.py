@@ -42,7 +42,17 @@ def read(name):
 
 CLAIMS_YEAR = ('2025-01-01', '2025-12-31')  # CMS modeled CY 2027 from CY 2025 claims (PI p. 1206)
 CUT_STARTS = '2027-01-01'
-EXPORT_DATE = '2026-11-05'  # the OPAIS export's date
+
+
+def export_date():
+    """The OPAIS export's date, from its pinned file name (340B_CoveredEntityJson_Daily_YYYYMMDD_...)."""
+    import re
+    name = next(s['file'] for s in json.loads((HERE / 'sources.json').read_text(encoding='utf-8')) if s['name'] == 'opais')
+    d = re.search(r'_(\d{8})_', name).group(1)
+    return '%s-%s-%s' % (d[:4], d[4:6], d[6:])
+
+
+EXPORT_DATE = export_date()
 
 # Acronyms CMS's file title-cases ("Nyu Langone"); restored when they stand as whole words.
 ACRONYMS = {'Nyu', 'Ucsf', 'Ucla', 'Upmc', 'Uab', 'Unc', 'Osf', 'Musc', 'Vcu', 'Ut', 'Uc', 'Ssm', 'Chi', 'Hca', 'Lds', 'Uams',
@@ -55,10 +65,11 @@ def tidy_name(name):
 
 
 def overlaps(r, lo, hi):
-    """Was this OPAIS registration in force at any time from lo to hi (ISO dates)?"""
+    """Was this OPAIS registration in force at any time from lo to hi (ISO dates)? A termination date is the first day
+    out, so a registration ending 2025-01-01 was never in force in 2025."""
     start = r['start_date'] or '0000'
     end = r['termination_date'] or '9999'
-    return start <= hi and end >= lo
+    return start <= hi and end > lo
 
 
 def since_year(records):
@@ -95,8 +106,9 @@ def load():
         recs = ops.get(c, [])
         # In 340B when the cut starts: a participating registration not ending by 2027-01-01, or one scheduled to begin
         # (participating FALSE, starting after the export, no end date yet).
-        now = [x for x in recs if overlaps(x, CUT_STARTS, CUT_STARTS) and x['termination_date'] != CUT_STARTS
+        now = [x for x in recs if overlaps(x, CUT_STARTS, CUT_STARTS)
                and (x['participating'] == 'TRUE' or (x['start_date'] > EXPORT_DATE and not x['termination_date']))]
+        scheduled_only = bool(now) and not any(x['participating'] == 'TRUE' for x in now)
         in_2025 = any(overlaps(x, *CLAIMS_YEAR) for x in recs)
         a = aaa.get(c)
         rural_sch = r['rural_sch'] == '1'
@@ -109,7 +121,7 @@ def load():
             r, name=tidy_name(r['name']), m=float(r['pay_2026']), n=float(r['pay_2027']), offset=c in offset,
             charge_share=cs if cs is not None else median_share, has_cost_report=cs is not None,
             aaa_2021=float(a['y2021']) if a else 0.0, aaa_total=float(a['total']) if a else 0.0,
-            participating=bool(now), in_2025=in_2025, op_type=cur['entity_type'] if cur else '',
+            participating=bool(now), in_2025=in_2025, scheduled=scheduled_only, op_type=cur['entity_type'] if cur else '',
             op_start=since_year(recs) if now else '', candidate=candidate,
             city=h['city'] if h else '', state=(h['state'] if h and h['state'] else CCN_STATE.get(c[:2], '')),
             p_net=(float(p['pay_2027']) / float(p['pay_2026']) - 1) if p and float(p['pay_2026']) > 0 else None,
@@ -121,7 +133,7 @@ def status(h):
     if h['rural_sch'] == '1':
         return 'exempt'          # rural SCHs (and EACHs) are excepted from the drug cut (PI p. 1212)
     if h['participating'] and h['in_2025']:
-        return '340b'            # HRSA OPAIS: participating today and during CMS's 2025 claims year
+        return '340b'            # HRSA OPAIS: in 340B during CMS's 2025 claims year and on 2027-01-01
     if h['participating']:
         return 'new'             # in 340B on 2027-01-01 but not in 2025: CMS's estimate has no cut for it, the real 2027 will
     if h['in_2025']:
@@ -237,6 +249,7 @@ COLUMNS = [
     ('status', 'status', status),
     ('opType', 'hrsa_entity_type', lambda r: r['op_type'] if r['participating'] else ''),
     ('opStart', None, lambda r: r['op_start'][:4] if r['op_start'] else ''),
+    ('opSched', None, lambda r: 1 if r['scheduled'] else 0),
     ('offset', 'on_addendum_r', lambda r: 1 if r['offset'] else 0),
     ('pNet', 'proposed_rule_net_pct', lambda r: None if r['p_net'] is None else round(100 * r['p_net'], 2)),
 ]

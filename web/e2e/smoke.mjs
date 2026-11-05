@@ -40,16 +40,16 @@ assert.equal(await p2.$('.statement'), null);
 await p2.goto(`${base}#050454`);
 await p2.waitForSelector('.statement');
 
+// Escape closes the statement drawer (it covers the text column, the slider's home).
+await page.keyboard.press('Escape');
+assert.equal(await page.isHidden('#drawer'), true);
+
 // Rate slider.
 await page.click('button.chip:has-text("ASP − 33.4%")');
 const out = await page.textContent('#rate-out');
 assert.match(out, /hospitals get less/);
 await page.click('button.chip:has-text("No cut")');
 assert.match(await page.textContent('#rate-out'), /No 340B cut/);
-
-// Escape closes the statement drawer.
-await page.keyboard.press('Escape');
-assert.equal(await page.isHidden('#drawer'), true);
 
 // Malformed links are ignored without errors.
 await p2.goto(`${base}#%E0%A4`);

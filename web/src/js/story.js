@@ -48,7 +48,7 @@ function maxColumn(values, idx, w, d) {
 // Largest dot pitch at which every group's tallest column fits its share of the height.
 function fitPitch(values, groups, w, hAvail) {
   let d = Math.min(7, Math.max(2.2, w / 150));
-  while (d > 1.4) {
+  while (d > 1.0) {
     const need = groups.reduce((s, g) => s + maxColumn(values, g, w, d) * d, 0);
     if (need <= hAvail) break;
     d *= 0.95;
@@ -88,6 +88,13 @@ export function mountStory(field, data, { onSelect }) {
     S.values.forEach((v, i) => (v < 0 ? loss : v > 0 ? gain : zero).push(i));
     byColor = [loss, gain, zero];
   }
+  const C0 = data.meta.constants.discount;
+  function applyValues(d, values) {
+    const v = values || (d === C0 ? base : whatIf(data, d));
+    if (v === S.values) return;
+    S.values = v;
+    sortColors();
+  }
   S.values = base;
   sortColors();
 
@@ -114,7 +121,7 @@ export function mountStory(field, data, { onSelect }) {
       const w = S.w - P.l - P.r;
       const groups = rowIdx;
       const labelH = 22;
-      const avail = S.h - P.t - P.b - labelH * groups.length;
+      const avail = S.h - P.t - P.b - labelH * groups.length - 6 * (groups.length - 1);
       const d = fitPitch(S.values, groups, w, avail);
       let y = P.t;
       const labels = [];
@@ -125,7 +132,7 @@ export function mountStory(field, data, { onSelect }) {
         stack(S.values, g, P.l, w, y + hgt / 2, d, S.tx, S.ty);
         y += hgt + 6;
       });
-      S.tr = Math.max(0.8, d / 2 - 0.3);
+      S.tr = Math.max(0.5, d / 2 - 0.2);
       return { kind: 'rows', labels, ticks: axisTicks(P, S.w < 560 ? [-20, 0, 20] : [-20, -10, 0, 10, 20]), top: P.t, bottom: y };
     },
     scatter() {
@@ -283,6 +290,24 @@ export function mountStory(field, data, { onSelect }) {
       ctx.arc(S.x[i], S.y[i], Math.max(5, S.r * 2.6), 0, Math.PI * 2);
       ctx.stroke();
     }
+    if (S.selected >= 0 && !S.anim) {
+      // Name the selected hospital beside its dot, on a paper chip, kept inside the field.
+      const i = S.selected;
+      const name = hs[i].name.length > 34 ? `${hs[i].name.slice(0, 33)}…` : hs[i].name;
+      ctx.font = `600 13px ${colors['font-display']}`;
+      const w = ctx.measureText(name).width + 12;
+      const right = S.x[i] + 10 + w < S.w;
+      const x = right ? S.x[i] + 10 : S.x[i] - 10 - w;
+      const y = Math.min(Math.max(S.y[i] - 11, 2), S.h - 24);
+      ctx.fillStyle = colors.paper;
+      ctx.strokeStyle = colors.ink;
+      ctx.lineWidth = 1;
+      ctx.fillRect(x, y, w, 22);
+      ctx.strokeRect(x + 0.5, y + 0.5, w - 1, 21);
+      ctx.fillStyle = colors.ink;
+      ctx.textAlign = 'left';
+      ctx.fillText(name, x + 6, y + 15);
+    }
     if (S.anim) requestAnimationFrame(draw);
   }
 
@@ -298,26 +323,25 @@ export function mountStory(field, data, { onSelect }) {
     S.fx.set(S.x);
     S.fy.set(S.y);
     S.r0 = S.r;
+    // The what-if rate only ever recolors the scatter; every other layout shows CMS's own numbers.
+    applyValues(mode === 'scatter' ? S.discount : C0);
     S.overlay = LAYOUTS[mode]();
     S.mode = mode;
     canvas.setAttribute('aria-label', LABELS[mode]());
+    tip.hide();
+    S.hover = -1;
     if (animate && !reduce) {
       const was = S.anim;
       S.anim = true;
       S.t0 = performance.now();
       if (!was) requestAnimationFrame(draw);
-      tip.hide();
-      S.hover = -1;
-      return;
     } else {
       S.x.set(S.tx);
       S.y.set(S.ty);
       S.r = S.tr;
       S.anim = false;
+      redraw();
     }
-    tip.hide();
-    S.hover = -1;
-    redraw();
   }
 
   const LABELS = {
@@ -388,7 +412,7 @@ export function mountStory(field, data, { onSelect }) {
       tip.show(S.x[i], S.y[i] - S.r,
         h('strong', null, x.name),
         h('span', null, [x.city, stateName(x.st)].filter(Boolean).join(', ')),
-        h('span', { class: S.values[i] < 0 ? 'neg' : 'pos' }, `${pct(S.values[i])} in 2027${S.mode === 'scatter' && S.discount !== 0.28 ? ' at this rate' : ''}`));
+        h('span', { class: S.values[i] < 0 ? 'neg' : 'pos' }, `${pct(S.values[i])} in 2027${S.mode === 'scatter' && S.discount !== C0 ? ' at this rate' : ''}`));
     }
     canvas.style.cursor = i >= 0 ? 'pointer' : 'default';
     redraw();
@@ -407,9 +431,10 @@ export function mountStory(field, data, { onSelect }) {
     // The rate slider: recolor and move the dots at once (the scatter's y is the change).
     setDiscount(d) {
       S.discount = d;
-      S.values = d === data.meta.constants.discount ? base : whatIf(data, d);
-      sortColors();
-      if (S.mode === 'scatter') {
+      const values = d === C0 ? base : whatIf(data, d);
+      if (S.mode !== 'scatter') return values;
+      applyValues(d, values);
+      {
         S.overlay = LAYOUTS.scatter();
         S.x.set(S.tx);
         S.y.set(S.ty);

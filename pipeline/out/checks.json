@@ -8,10 +8,10 @@
   "gainers": 2897,
   "losers": 605,
   "unchanged": 0,
-  "drug_cut_total": -4650000000.000011,
+  "drug_cut_total": -4650000000.000007,
   "drug_cut_target": -4650000000.0,
-  "nondrug_raise_total": 4561752134.256716,
-  "nondrug_raise_vs_cut_pct": 98.10219643562806,
+  "nondrug_raise_total": 4561390262.488827,
+  "nondrug_raise_vs_cut_pct": 98.0944142470714,
   "offset_total": -1644561089.3505116,
   "offset_cms_estimate": -1600000000.0,
   "offset_hospitals": 3240,
@@ -19,12 +19,12 @@
   "fit": {
     "rho": 1.1,
     "weight": 0.75,
-    "everything_else": 0.029603440937863358,
-    "growth": 1.991796064343707,
-    "kappa": 0.8219193249297922,
-    "score": 0.1659577962835788
+    "everything_else": 0.02966621494415791,
+    "growth": 1.994666501089514,
+    "kappa": 0.821887951213828,
+    "score": 0.16585171930191606
   },
-  "table112_rms_points": 0.1659577962835788,
+  "table112_rms_points": 0.16585171930191606,
   "table112_worst_group": [
     "R-PR",
     1,
@@ -32,20 +32,20 @@
     9.3
   ],
   "residual_deciles_340b_pct": [
-    -0.2,
+    -0.3,
     0.6,
     1.2,
     1.8,
     2.2,
     2.7,
-    3.1,
-    3.8,
-    4.9
+    3.0,
+    3.7,
+    4.8
   ],
   "residual_deciles_other_pct": [
     0.0,
     1.0,
-    1.6,
+    1.7,
     2.3,
     3.0,
     3.7,
@@ -57,11 +57,11 @@
   "status_counts": {
     "340b": 1021,
     "new": 35,
-    "left": 124,
-    "history": 225,
+    "left": 109,
+    "history": 235,
     "exempt": 410,
     "proprietary": 1035,
-    "none": 652
+    "none": 657
   },
   "no_cost_report": 46,
   "flipped_to_gain": 77,

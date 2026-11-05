@@ -28,7 +28,7 @@ export function ledger(data) {
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 2. The tipping point: modeled 340B drug share (x) against the change (y), with a slider for the 340B rate.
+// 2. The rate presets for the scatter step's slider.
 const PRESETS = [
   { d: -0.06, label: 'No cut', note: 'ASP + 6%, the 2023–2026 rate' },
   { d: 0.225, label: 'ASP − 22.5%', note: 'the 2018–2022 rate the Supreme Court struck down' },
@@ -66,7 +66,15 @@ export function rateControl(data, onRate) {
   });
   const el = h('div', { class: 'tp-controls' }, h('label', { for: 'rate', class: 'tp-label' }, 'Medicare pays 340B drugs at ', rateText),
     slider, presets, out);
-  return { el, update, reset() { slider.value = String(100 * C.discount); update(); } };
+  return {
+    el,
+    update,
+    reset() {
+      if (Number(slider.value) === 100 * C.discount) return;
+      slider.value = String(100 * C.discount);
+      update();
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

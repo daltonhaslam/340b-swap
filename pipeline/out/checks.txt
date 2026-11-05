@@ -3,7 +3,7 @@ CY 2027 OPPS 340B swap: model checks
 Hospitals: 3502 (Table 112: 3502)
 CMS net, all hospitals: $83.46B -> $83.32B (-0.16%); 2897 gain, 605 lose
 
-Fit: rho 1.10, history weight 0.75, everything-else median 2.96%, growth 2021->claims 1.99, kappa 0.822
+Fit: rho 1.10, history weight 0.75, everything-else median 2.97%, growth 2021->claims 1.99, kappa 0.822
 Table 112 col 4, 50 groups: weighted RMS gap 0.17 points; worst R-PR (model 7.05 vs CMS 9.3)
 
 Drug cut total: $-4.65B (pinned to CMS $4.65B)
@@ -11,10 +11,10 @@ Non-drug raise total: $4.56B (budget neutral would equal the cut: 98% of it; not
 Remedy offset total: $-1.64B on 3240 hospitals (CMS: about $1.6B, PI p. 1208; not fitted)
 
 Everything-else residual deciles, %% of 2026 payments:
-  340B candidates: [-0.2, 0.6, 1.2, 1.8, 2.2, 2.7, 3.1, 3.8, 4.9]
-  everyone else:   [0.0, 1.0, 1.6, 2.3, 3.0, 3.7, 4.4, 5.0, 6.1]
+  340B candidates: [-0.3, 0.6, 1.2, 1.8, 2.2, 2.7, 3.0, 3.7, 4.8]
+  everyone else:   [0.0, 1.0, 1.7, 2.3, 3.0, 3.7, 4.4, 5.0, 6.1]
 
-Status: {'340b': 1021, 'new': 35, 'left': 124, 'history': 225, 'exempt': 410, 'proprietary': 1035, 'none': 652}
+Status: {'340b': 1021, 'new': 35, 'left': 109, 'history': 235, 'exempt': 410, 'proprietary': 1035, 'none': 657}
 No cost report (median drug share used): 46
 Break-even 340B drug share (all drugs 340B): 19.0%
 
@@ -23,11 +23,11 @@ Table 112 column 4, model vs CMS:
   DSH0       n=11    model   7.25  CMS   7.4
   DSH0-10    n=254   model   6.55  CMS   6.5
   DSH10-16   n=263   model   6.30  CMS   6.3
-  DSH16-23   n=546   model   5.62  CMS   5.6
+  DSH16-23   n=546   model   5.64  CMS   5.6
   DSH23-35   n=1135  model  -0.80  CMS  -0.8
-  DSH35+     n=743   model  -5.16  CMS  -5.2
+  DSH35+     n=743   model  -5.17  CMS  -5.2
   DSHNA      n=550   model   6.68  CMS   6.4
-  GOV        n=407   model  -2.90  CMS  -2.9
+  GOV        n=407   model  -2.91  CMS  -2.9
   LURBAN     n=1342  model  -0.80  CMS  -0.8
   MAJOR      n=466   model  -3.77  CMS  -3.9
   MINOR      n=955   model   0.73  CMS   0.8
@@ -35,7 +35,7 @@ Table 112 column 4, model vs CMS:
   OURBAN     n=1495  model  -0.26  CMS  -0.2
   PROP       n=1106  model   6.78  CMS   6.8
   R-ENC      n=110   model   3.25  CMS   3.1
-  R-ESC      n=124   model   1.29  CMS   1.0
+  R-ESC      n=124   model   1.30  CMS   1.0
   R-MA       n=45    model   1.41  CMS   1.4
   R-MNT      n=39    model   5.15  CMS   5.2
   R-NE       n=20    model   4.10  CMS   3.8
@@ -53,19 +53,19 @@ Table 112 column 4, model vs CMS:
   RSCH       n=324   model   5.55  CMS   5.3
   RURAL      n=665   model   3.36  CMS   3.3
   U-ENC      n=426   model  -0.77  CMS  -0.7
-  U-ESC      n=177   model  -3.01  CMS  -2.6
+  U-ESC      n=177   model  -3.00  CMS  -2.6
   U-MA       n=300   model  -0.93  CMS  -1.1
   U-MNT      n=239   model   0.72  CMS   1.0
-  U-NE       n=122   model  -0.66  CMS  -0.8
+  U-NE       n=122   model  -0.67  CMS  -0.8
   U-PAC      n=387   model  -0.50  CMS  -0.6
   U-PR       n=52    model   5.32  CMS   4.5
   U-SA       n=474   model  -0.05  CMS  -0.1
   U-WNC      n=182   model  -1.60  CMS  -1.6
   U-WSC      n=478   model   1.31  CMS   1.4
   UB0-99     n=1004  model   4.41  CMS   4.5
-  UB100-199  n=787   model   2.69  CMS   2.7
+  UB100-199  n=787   model   2.70  CMS   2.7
   UB200-299  n=425   model   1.59  CMS   1.8
-  UB300-499  n=387   model   0.36  CMS   0.5
-  UB500+     n=234   model  -4.56  CMS  -4.8
+  UB300-499  n=387   model   0.37  CMS   0.5
+  UB500+     n=234   model  -4.57  CMS  -4.8
   URBAN      n=2837  model  -0.50  CMS  -0.5
   VOL        n=1989  model  -0.37  CMS  -0.4

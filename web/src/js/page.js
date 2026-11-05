@@ -47,7 +47,8 @@ export function renderPage(data) {
         h('p', null, `Sort the same dots by kind of hospital. The top row is the ${count(r340.n)} hospitals that were in 340B during 2025, `
           + `the year of claims CMS modeled. ${count(r340.losers)} of them get less, and as a group their payments change ${pct(r340.pct)}.`),
         h('p', null, `For-profit hospitals can’t join 340B. They take no drug cut, keep the whole raise and land together near ${pct(rProp.pct, { digits: 0 })}. `
-          + `Rural sole community hospitals are exempt from the cut, so all ${count(rSch.n)} gain.`)),
+          + (rSch.losers === 0 ? `Rural sole community hospitals are exempt from the cut, so all ${count(rSch.n)} gain.`
+            : `Rural sole community hospitals are exempt from the cut; ${count(rSch.n - rSch.losers)} of ${count(rSch.n)} gain.`))),
       step('scatter', 'step-3',
         h('h2', null, 'One number decides most hospitals'),
         h('p', null, `A hospital loses 32 cents of each 340B drug dollar and gains 7.5 cents on each of its other dollars. If all its drugs are 340B, `
@@ -60,7 +61,7 @@ export function renderPage(data) {
         h('h2', null, 'State by state'),
         h('p', null, `Each strip is one state’s hospitals, the ones that get less first, ranked by CMS’s estimate of every 2027 change. Hospitals in `
           + `${nameList(states.slice(0, 3))} lose the most as a share of their payments; ${nameList(states.slice(-3).reverse())} gain the most, `
-          + 'Alaska and Hawaii partly from a new cost-of-living adjustment.'),
+          + (['AK', 'HI'].every((st) => states.slice(-3).some((s) => s.st === st)) ? 'Alaska and Hawaii partly from a new cost-of-living adjustment.' : 'counting every change, not just 340B.')),
         stateTable(data)),
       step('swarm', 'step-5',
         h('h2', null, 'Find a hospital'),

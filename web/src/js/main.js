@@ -79,8 +79,8 @@ function boot() {
     active = el;
     for (const s of steps) s.classList.toggle('is-active', s === el);
     const mode = el.dataset.mode;
-    if (mode !== 'scatter') rate.reset();
     story.go(mode);
+    if (mode !== 'scatter') rate.reset();
   };
   const io = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) activate(e.target);

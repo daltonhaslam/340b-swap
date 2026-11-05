@@ -69,7 +69,7 @@ export function mountSearch(root, data, { onSelect }) {
     if (e.key === 'ArrowDown' && results.length) { active = (active + 1) % results.length; paint(); e.preventDefault(); }
     else if (e.key === 'ArrowUp' && results.length) { active = (active - 1 + results.length) % results.length; paint(); e.preventDefault(); }
     else if (e.key === 'Enter' && active >= 0 && results[active]) { choose(results[active]); e.preventDefault(); }
-    else if (e.key === 'Escape') close();
+    else if (e.key === 'Escape' && !list.hidden) { close(); e.stopPropagation(); }
   });
   input.addEventListener('blur', () => setTimeout(close, 120));
   return { input, setValue(v) { input.value = v; } };
