@@ -2,12 +2,11 @@
 
 export function decode(raw) {
   const { meta, cols, rows } = raw;
-  const hospitals = rows.map((r) => {
-    const o = {};
+  const hospitals = rows.map((r, i) => {
+    const o = { i };
     cols.forEach((c, i) => { o[c] = r[i]; });
     o.net = o.n - o.m;
     o.netPct = o.m > 0 ? (100 * o.net) / o.m : 0;
-    o.swap = o.cut + o.gain;          // the 340B policy alone (CMS Table 112 column 4's piece)
     o.search = `${o.name} ${o.city} ${o.st} ${o.ccn}`.toLowerCase();
     return o;
   });
@@ -58,21 +57,22 @@ function totals(hs, meta) {
   };
 }
 
+// Share of each 340B drug dollar removed if Medicare paid ASP minus `discount` (0.28 in the final rule).
+const cutRate = (C, discount) => 1 - (1 - discount) / C.oldRate;
+
 // Recompute every hospital's net under a different 340B rate (ASP minus `discount`). The non-drug raise is budget
 // neutral, so it scales with the total cut. Everything else stays as CMS estimated it.
 export function whatIf(data, discount) {
   const C = data.meta.constants;
-  const cutRate = 1 - (1 - discount) / C.oldRate;
-  const k = cutRate / C.cut;            // how much bigger (or smaller) the cut and the raise get
-  return data.hospitals.map((x) => {
-    const net = x.net - x.cut - x.gain + k * x.cut + k * x.gain;
-    return x.m > 0 ? (100 * net) / x.m : 0;
-  });
+  const k = cutRate(C, discount) / C.cut;   // how much bigger (or smaller) the cut and the raise get
+  return data.hospitals.map((x) => (x.m > 0 ? (100 * (x.net + (k - 1) * (x.cut + x.gain))) / x.m : 0));
 }
+
+export { cutRate };
 
 export function breakevenAt(data, discount) {
   const C = data.meta.constants;
-  const cutRate = 1 - (1 - discount) / C.oldRate;
-  const gain = C.gain * (cutRate / C.cut);
-  return cutRate > 0 ? gain / (gain + cutRate) : 1;
+  const cut = cutRate(C, discount);
+  const gain = C.gain * (cut / C.cut);
+  return cut > 0 ? gain / (gain + cut) : 1;
 }

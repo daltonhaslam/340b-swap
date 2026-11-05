@@ -22,7 +22,33 @@ function append(el, kids) {
   }
 }
 
-export function clear(el) {
-  while (el.firstChild) el.removeChild(el.firstChild);
-  return el;
+// CSS custom properties as one object, read once per draw instead of once per mark.
+export function palette(el, names) {
+  const cs = getComputedStyle(el);
+  return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(`--${n}`).trim()]));
+}
+
+// Size a canvas to w x H CSS pixels at the screen's pixel density; returns that density.
+export function sizeCanvas(canvas, w, H) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.height = `${H}px`;
+  return dpr;
+}
+
+// A tooltip inside `host` (which must be position: relative). show() centers it above (x, y), kept 90px from the edges.
+export function makeTip(host) {
+  const el = h('div', { class: 'tip', hidden: true, role: 'presentation' });
+  host.append(el);
+  return {
+    show(x, y, ...kids) {
+      el.replaceChildren(...kids);
+      const w = host.clientWidth;
+      el.style.left = `${Math.min(Math.max(x, 90), w - 90)}px`;
+      el.style.top = `${y - 14}px`;
+      el.hidden = false;
+    },
+    hide() { el.hidden = true; },
+  };
 }

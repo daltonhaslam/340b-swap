@@ -20,10 +20,6 @@ class RuleConstants(unittest.TestCase):
         self.assertAlmostEqual(model.OFFSET_FACTOR, 0.9804, places=4)
         self.assertAlmostEqual(model.OFFSET, 0.01999, places=4)
 
-    def test_rate_cut(self):
-        self.assertAlmostEqual(model.rate_cut(0.28), model.CUT, places=12)
-        self.assertAlmostEqual(model.rate_cut(-0.06), 0.0, places=12)
-
     def test_breakeven_about_19_percent(self):
         self.assertAlmostEqual(model.GAIN / (model.GAIN + model.CUT), 0.1895, places=3)
 

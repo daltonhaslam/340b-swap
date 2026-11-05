@@ -8,7 +8,7 @@ Table 112 col 4, 50 groups: weighted RMS gap 0.17 points; worst R-PR (model 7.05
 
 Drug cut total: $-4.65B (pinned to CMS $4.65B)
 Non-drug raise total: $4.52B (budget neutral would equal the cut: 97% of it; not fitted)
-Remedy offset total: $-1.64B on 3240 hospitals (CMS: about $1.6B, 3,322 providers incl. CMHCs; not fitted)
+Remedy offset total: $-1.64B on 3240 hospitals (CMS: about $1.6B, PI p. 1208; not fitted)
 
 Everything-else residual deciles, %% of 2026 payments:
   340B candidates: [-0.2, 0.7, 1.3, 1.8, 2.2, 2.7, 3.1, 3.8, 5.0]

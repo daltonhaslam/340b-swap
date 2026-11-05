@@ -10,6 +10,7 @@ import json
 import re
 import sys
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -99,10 +100,6 @@ def remedy():
             v = [money(x) or 0.0 for x in c[2:8]]
             rows.append([c[0].strip()] + ['%.2f' % x for x in v])
     write('remedy_aaa.csv', ['ccn', 'y2018', 'y2019', 'y2020', 'y2021', 'y2022', 'total'], sorted(rows))
-    z = open_pinned('remedy_bbb')
-    text = z.read(member(z, r'\.txt$')).decode('cp1252')
-    rows = sorted({line.split('\t')[0].strip() for line in text.splitlines() if CCN.fullmatch(line.split('\t')[0].strip())})
-    write('remedy_bbb.csv', ['ccn'], [[c] for c in rows])
 
 
 HOSPITAL_TYPES = ('DSH', 'RRC', 'SCH', 'CAN', 'PED', 'CAH')
@@ -159,13 +156,10 @@ def hcris():
             m = rpt.get(rec)
             if not m or not v.get('total_charges'):
                 continue
-            mb, db, yb = m['begin'].split('/')
-            me, de, ye = m['end'].split('/')
-            from datetime import date
-            days = (date(int(ye), int(me), int(de)) - date(int(yb), int(mb), int(db))).days + 1
-            row = dict(v, ccn=m['ccn'], end='%s-%s-%s' % (ye, me, de), days=days)
+            begin, end = (datetime.strptime(m[k], '%m/%d/%Y').date() for k in ('begin', 'end'))
+            row = dict(v, ccn=m['ccn'], end=end.isoformat(), days=(end - begin).days + 1)
             # Prefer the latest full-year report (300+ days); a short report only if nothing longer exists.
-            key = (days >= 300, row['end'])
+            key = (row['days'] >= 300, row['end'])
             cur = best.get(m['ccn'])
             if cur is None or key > (cur['days'] >= 300, cur['end']):
                 best[m['ccn']] = row

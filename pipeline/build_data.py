@@ -10,6 +10,7 @@ import csv
 import json
 import statistics
 import sys
+from datetime import date
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -32,8 +33,6 @@ CCN_STATE = {
     '52': 'WI', '53': 'WY', '55': 'CA', '67': 'TX', '68': 'FL',
 }
 
-# Never used as an example, default or featured hospital anywhere on the page (they stay searchable like any other).
-NOT_FEATURED = ('MARY WASHINGTON', 'STAFFORD', 'UVA ', 'UNIVERSITY OF VIRGINIA', 'CULPEPER', 'PRINCE WILLIAM', 'HAYMARKET')
 
 
 def read(name):
@@ -41,33 +40,16 @@ def read(name):
         return list(csv.DictReader(f))
 
 
-def kind(ccn):
-    """Provider type from CCN digits 3-6 (State Operations Manual 2779A1)."""
-    n = int(ccn[2:])
-    if n <= 879:
-        return 'acute'
-    if 2000 <= n <= 2299:
-        return 'ltch'
-    if 3025 <= n <= 3099:
-        return 'rehab'
-    if 4000 <= n <= 4499:
-        return 'psych'
-    if 3300 <= n <= 3399:
-        return 'children'
-    return 'other'
-
-
 CLAIMS_YEAR = ('2025-01-01', '2025-12-31')  # CMS modeled CY 2027 from CY 2025 claims (PI p. 1206)
 
 # Acronyms CMS's file title-cases ("Nyu Langone"); restored when they stand as whole words.
 ACRONYMS = {'Nyu', 'Ucsf', 'Ucla', 'Upmc', 'Uab', 'Unc', 'Osf', 'Musc', 'Vcu', 'Ut', 'Uc', 'Ssm', 'Chi', 'Hca', 'Lds', 'Uams',
-            'Ohsu', 'Uci', 'Ucsd', 'Ucd', 'Usa', 'Ii', 'Iii', 'Iv', 'Va', 'Mlk', 'Wvu', 'Ou', 'Ku', 'Psl', 'Hshs', 'Ascension'}
-ACRONYM_EXCEPT = {'Ascension'}
+            'Ohsu', 'Uci', 'Ucsd', 'Ucd', 'Usa', 'Ii', 'Iii', 'Iv', 'Va', 'Mlk', 'Wvu', 'Ou', 'Ku', 'Psl', 'Hshs'}
 
 
 def tidy_name(name):
     words = name.split(' ')
-    return ' '.join(w.upper() if w in ACRONYMS and w not in ACRONYM_EXCEPT else w for w in words)
+    return ' '.join(w.upper() if w in ACRONYMS else w for w in words)
 
 
 def overlaps(r, lo, hi):
@@ -79,21 +61,16 @@ def overlaps(r, lo, hi):
 
 def since_year(records):
     """First year of the unbroken run of registrations that ends in today's participating one (gaps under 32 days)."""
-    from datetime import date
     rs = sorted((r for r in records if r['start_date']), key=lambda r: r['start_date'])
-    cur = next((r for r in reversed(rs) if r['participating'] == 'TRUE'), None)
-    if cur is None:
+    now = [i for i, r in enumerate(rs) if r['participating'] == 'TRUE']
+    if not now:
         return ''
-    first = cur['start_date']
-    changed = True
-    while changed:
-        changed = False
-        for r in rs:
-            if r['start_date'] < first and r['termination_date']:
-                gap = (date.fromisoformat(first) - date.fromisoformat(r['termination_date'])).days
-                if gap < 32:
-                    first = r['start_date']
-                    changed = True
+    first = rs[now[0]]['start_date']
+    for r in reversed(rs[:now[0]]):  # walk back through earlier registrations while each ends within a month of the next
+        end = r['termination_date']
+        if not end or (date.fromisoformat(first) - date.fromisoformat(end)).days >= 32:
+            break
+        first = r['start_date']
     return first[:4]
 
 
@@ -130,7 +107,6 @@ def load():
             participating=bool(now), in_2025=in_2025, op_type=cur['entity_type'] if cur else '',
             op_start=since_year(recs) if now else '', candidate=candidate,
             city=h['city'] if h else '', state=(h['state'] if h and h['state'] else CCN_STATE.get(c[:2], '')),
-            kind=kind(c),
             p_net=(float(p['pay_2027']) / float(p['pay_2026']) - 1) if p and float(p['pay_2026']) > 0 else None,
         ))
     return out
@@ -218,8 +194,8 @@ def main():
         '',
         'Drug cut total: $%.2fB (pinned to CMS $4.65B)' % (cut / 1e9),
         'Non-drug raise total: $%.2fB (budget neutral would equal the cut: %.0f%% of it; not fitted)' % (gain / 1e9, pct(gain, -cut)),
-        'Remedy offset total: $%.2fB on %d hospitals (CMS: about $1.6B, 3,322 providers incl. CMHCs; not fitted)'
-        % (off / 1e9, checks['offset_hospitals']),
+        'Remedy offset total: $%.2fB on %d hospitals (CMS: about $%.1fB, PI p. 1208; not fitted)'
+        % (off / 1e9, checks['offset_hospitals'], model.TARGET_OFFSET / 1e9),
         '',
         'Everything-else residual deciles, %% of 2026 payments:',
         '  340B candidates: %s' % resid_c,
@@ -236,44 +212,57 @@ def main():
     write_site(res, scal, checks)
 
 
+# Every published column: (name in swap.json, name in the download CSV or None, value). One list, so the JSON and the CSV
+# can't drift apart.
+COLUMNS = [
+    ('ccn', 'ccn', lambda r: r['ccn']),
+    ('name', 'name', lambda r: r['name']),
+    ('city', 'city', lambda r: r['city']),
+    ('st', 'state', lambda r: r['state']),
+    ('m', 'cms_est_2026_opps_payment', lambda r: round(r['m'])),
+    ('n', 'cms_est_2027_opps_payment', lambda r: round(r['n'])),
+    ('cut', 'modeled_340b_drug_cut', lambda r: round(r['cut'])),
+    ('gain', 'modeled_nondrug_raise', lambda r: round(r['gain'])),
+    ('off', 'modeled_remedy_offset', lambda r: round(r['off'])),
+    ('other', 'everything_else', lambda r: round(r['other'])),
+    ('b', 'modeled_340b_drug_share', lambda r: round(r['b'], 3)),
+    ('bLo', 'modeled_340b_drug_share_low', lambda r: round(r['b_lo'], 3)),
+    ('bHi', 'modeled_340b_drug_share_high', lambda r: round(r['b_hi'], 3)),
+    ('s', None, lambda r: round(r['s'], 3)),
+    ('status', 'status', status),
+    ('opType', 'hrsa_entity_type', lambda r: r['op_type'] if r['participating'] else ''),
+    ('opStart', None, lambda r: r['op_start'][:4] if r['op_start'] else ''),
+    ('offset', 'on_addendum_r', lambda r: 1 if r['offset'] else 0),
+    ('pNet', 'proposed_rule_net_pct', lambda r: None if r['p_net'] is None else round(100 * r['p_net'], 2)),
+]
+# The checks the page quotes.
+PAGE_CHECKS = ('hospitals', 'table112_rms_points', 'nondrug_raise_total', 'nondrug_raise_vs_cut_pct', 'offset_total',
+               'offset_hospitals', 'flipped_to_gain', 'flipped_to_loss')
+
+
 def write_site(res, scal, checks):
-    rows = []
-    for r in sorted(res, key=lambda r: r['ccn']):
-        rows.append([
-            r['ccn'], r['name'], r['city'], r['state'], round(r['m']), round(r['n']),
-            round(r['cut']), round(r['gain']), round(r['off']), round(r['other']),
-            round(r['b'], 4), round(r['b_lo'], 4), round(r['b_hi'], 4), round(r['s'], 4),
-            status(r), r['op_type'] if r['participating'] else '', r['op_start'][:4] if r['op_start'] else '',
-            1 if r['offset'] else 0, None if r['p_net'] is None else round(100 * r['p_net'], 2),
-            r['kind'], r['ownership'], r['teaching'], r['geo'],
-            1 if any(x in r['name'].upper() for x in NOT_FEATURED) else 0,
-        ])
-    cols = ['ccn', 'name', 'city', 'st', 'm', 'n', 'cut', 'gain', 'off', 'other', 'b', 'bLo', 'bHi', 's', 'status', 'opType',
-            'opStart', 'offset', 'pNet', 'kind', 'own', 'teach', 'geo', 'noFeature']
+    res = sorted(res, key=lambda r: r['ccn'])
+    rows = [[get(r) for _, _, get in COLUMNS] for r in res]
     meta = dict(
-        constants=dict(oldRate=model.OLD_RATE, newRate=model.NEW_RATE, cut=model.CUT, gain=model.GAIN, offset=model.OFFSET,
-                       targetCut=model.TARGET_CUT, targetOffset=model.TARGET_OFFSET, cf2026=model.CF_2026, cf2027=model.CF_2027,
-                       cf2027Offset=model.CF_2027_OFFSET),
+        constants=dict(oldRate=model.OLD_RATE, cut=model.CUT, gain=model.GAIN, targetCut=model.TARGET_CUT,
+                       cf2027=model.CF_2027, cf2027Offset=model.CF_2027_OFFSET),
         fit={k: round(v, 4) for k, v in scal.items()},
-        checks={k: v for k, v in checks.items() if k not in ('fit', 'table112_worst_group')},
+        checks={k: checks[k] for k in PAGE_CHECKS},
         table112={g: list(v) for g, v in TABLE.items()},
     )
-    data = dict(meta=meta, cols=cols, rows=rows)
+    data = dict(meta=meta, cols=[c for c, _, _ in COLUMNS], rows=rows)
     out = ROOT / 'web' / 'src' / 'data' / 'swap.json'
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, separators=(',', ':')) + '\n', encoding='utf-8')
     print('wrote %s (%.0f KB)' % (out.relative_to(ROOT), out.stat().st_size / 1024))
     dl = ROOT / 'docs' / 'data' / '340b-swap-cy2027-hospitals.csv'
     dl.parent.mkdir(parents=True, exist_ok=True)
+    csv_cols = [(head, get) for _, head, get in COLUMNS if head]
     with open(dl, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f, lineterminator='\n')
-        w.writerow(['ccn', 'name', 'city', 'state', 'cms_est_2026_opps_payment', 'cms_est_2027_opps_payment', 'cms_net_change',
-                    'modeled_340b_drug_cut', 'modeled_nondrug_raise', 'modeled_remedy_offset', 'everything_else',
-                    'modeled_340b_drug_share', 'modeled_340b_drug_share_low', 'modeled_340b_drug_share_high',
-                    'status', 'hrsa_entity_type', 'on_addendum_r', 'proposed_rule_net_pct'])
-        for x in rows:
-            w.writerow([x[0], x[1], x[2], x[3], x[4], x[5], x[5] - x[4], x[6], x[7], x[8], x[9], x[10], x[11], x[12], x[14], x[15], x[17], x[18]])
-
+        w.writerow([h for h, _ in csv_cols] + ['cms_net_change'])
+        for r in res:
+            w.writerow([get(r) for _, get in csv_cols] + [round(r['n']) - round(r['m'])])
 
 if __name__ == '__main__':
     main()

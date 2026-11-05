@@ -1,15 +1,11 @@
 // The hero: every hospital as one dot, placed by CMS's estimated change in 2027 outpatient payments.
 // A symmetric dot plot on canvas (3,500 marks), with one load animation: every dot starts on the zero line, then moves
 // to where the 2027 rule puts it.
-import { h } from './dom.js';
-import { pct, stateName } from './format.js';
+import { h, palette, sizeCanvas, makeTip } from './dom.js';
+import { pct, count, stateName } from './format.js';
 
 const LO = -30;
 const HI = 30;
-
-function cssVar(el, name) {
-  return getComputedStyle(el).getPropertyValue(name).trim();
-}
 
 function layout(values, width, maxHeight) {
   const plotW = width;
@@ -44,12 +40,13 @@ export function mountSwarm(root, data, { onSelect }) {
   const hs = data.hospitals;
   const values = hs.map((x) => x.netPct);
   const canvas = h('canvas', { class: 'swarm-canvas', role: 'img',
-    'aria-label': `Dot plot of ${hs.length.toLocaleString('en-US')} hospitals by CMS's estimated change in 2027 outpatient payments. `
-      + `${data.totals.losers} get less, ${data.totals.gainers.toLocaleString('en-US')} get more.` });
-  const tip = h('div', { class: 'tip', hidden: true, role: 'presentation' });
+    'aria-label': `Dot plot of ${count(hs.length)} hospitals by CMS's estimated change in 2027 outpatient payments. `
+      + `${count(data.totals.losers)} get less, ${count(data.totals.gainers)} get more.` });
   const axis = h('div', { class: 'swarm-axis', 'aria-hidden': 'true' });
-  const wrap = h('div', { class: 'swarm-wrap' }, canvas, tip);
+  const wrap = h('div', { class: 'swarm-wrap' }, canvas);
+  const tip = makeTip(wrap);
   root.append(wrap, axis);
+  let colors = palette(root, ['gain', 'loss', 'neutral', 'ink', 'rule-strong']);
 
   const state = { L: null, selected: null, focus: null, t0: null, anim: false, hover: -1, w: 0 };
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -61,12 +58,9 @@ export function mountSwarm(root, data, { onSelect }) {
     state.L = layout(values, w, maxH);
     state.w = w;
     const H = Math.max(state.L.height + 16, 120);
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(H * dpr);
-    canvas.style.height = `${H}px`;
     state.H = H;
-    state.dpr = dpr;
+    state.dpr = sizeCanvas(canvas, w, H);
+    state.cache = null;
     drawAxis();
     return true;
   }
@@ -82,18 +76,15 @@ export function mountSwarm(root, data, { onSelect }) {
 
   const ease = (t) => 1 - (1 - t) ** 3;
 
-  function draw(now) {
+  // The dots (and the zero line), at time `now` of the load animation; returns whether the animation is still running.
+  function drawDots(ctx, now) {
     const { L, H, dpr } = state;
-    const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, state.w, H);
-    const gain = cssVar(root, '--gain');
-    const loss = cssVar(root, '--loss');
-    const neutral = cssVar(root, '--neutral');
-    const ink = cssVar(root, '--ink');
+    const { gain, loss, neutral } = colors;
     const cy = H / 2;
     const x0 = xOf(0);
-    ctx.strokeStyle = cssVar(root, '--rule-strong');
+    ctx.strokeStyle = colors['rule-strong'];
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(Math.round(x0) + 0.5, 0);
@@ -123,6 +114,29 @@ export function mountSwarm(root, data, { onSelect }) {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+    return running;
+  }
+
+  function draw(now) {
+    const ctx = canvas.getContext('2d');
+    let running = false;
+    if (state.anim) {
+      running = drawDots(ctx, now);
+    } else {
+      if (!state.cache) {
+        state.cache = document.createElement('canvas');
+        state.cache.width = canvas.width;
+        state.cache.height = canvas.height;
+        drawDots(state.cache.getContext('2d'), now);
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(state.cache, 0, 0);
+    }
+    const { L, H, dpr } = state;
+    const cy = H / 2;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ink = colors.ink;
     for (const i of [state.hover, state.selected]) {
       if (i == null || i < 0) continue;
       const p = L.pos[i];
@@ -154,18 +168,13 @@ export function mountSwarm(root, data, { onSelect }) {
   }
 
   function showTip(i) {
-    if (i < 0) { tip.hidden = true; return; }
+    if (i < 0) { tip.hide(); return; }
     const x = hs[i];
     const p = state.L.pos[i];
-    tip.replaceChildren(
+    tip.show(p.x, state.H / 2 + p.dy,
       h('strong', null, x.name),
       h('span', null, [x.city, stateName(x.st)].filter(Boolean).join(', ')),
-      h('span', { class: x.net < 0 ? 'neg' : 'pos' }, `${pct(x.netPct)} in 2027`),
-    );
-    tip.hidden = false;
-    const left = Math.min(Math.max(p.x, 90), state.w - 90);
-    tip.style.left = `${left}px`;
-    tip.style.top = `${state.H / 2 + p.dy - 14}px`;
+      h('span', { class: x.net < 0 ? 'neg' : 'pos' }, `${pct(x.netPct)} in 2027`));
   }
 
   canvas.addEventListener('pointermove', (e) => {
@@ -175,7 +184,7 @@ export function mountSwarm(root, data, { onSelect }) {
     if (i !== state.hover) { state.hover = i; showTip(i); redraw(); }
     canvas.style.cursor = i >= 0 ? 'pointer' : 'default';
   });
-  canvas.addEventListener('pointerleave', () => { state.hover = -1; tip.hidden = true; redraw(); });
+  canvas.addEventListener('pointerleave', () => { state.hover = -1; tip.hide(); redraw(); });
   canvas.addEventListener('click', () => { if (state.hover >= 0) onSelect(hs[state.hover]); });
 
   let resizeTimer;
@@ -185,7 +194,11 @@ export function mountSwarm(root, data, { onSelect }) {
       if (Math.round(wrap.clientWidth) !== state.w && measure()) redraw();
     }, 80);
   }).observe(wrap);
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    colors = palette(root, ['gain', 'loss', 'neutral', 'ink', 'rule-strong']);
+    state.cache = null;
+    redraw();
+  });
 
   if (measure()) {
     if (!reduce) { state.anim = true; state.t0 = performance.now(); }
@@ -194,10 +207,10 @@ export function mountSwarm(root, data, { onSelect }) {
 
   return {
     select(x) {
-      state.selected = x ? hs.indexOf(x) : null;
+      state.selected = x ? x.i : null;
       redraw();
     },
-    setFocus(fn) { state.focus = fn; redraw(); },
+    setFocus(fn) { state.focus = fn; state.cache = null; redraw(); },
     redraw,
   };
 }

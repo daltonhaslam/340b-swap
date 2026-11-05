@@ -28,13 +28,6 @@
     "note": "CMS, 340B remedy final rule (CMS-1793-F, Nov 2023), Addendum AAA: each hospital's 340B drug payment reduction for CY 2018-2022, repaid as a lump sum."
   },
   {
-    "name": "remedy_bbb",
-    "file": "remedy-bbb/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-bbb.zip",
-    "url": "https://www.cms.gov/files/zip/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-bbb.zip",
-    "sha256": "6a37132d560d0f7d8935e79c7556a858a89df3baaf3e1fba2ac4a8405da12a4c",
-    "note": "CMS-1793-F Addendum BBB: new providers (began OPPS billing after 2018-01-01) not subject to the remedy offset."
-  },
-  {
     "name": "opais",
     "file": "opais/340B_CoveredEntityJson_Daily_20261105_143545.zip",
     "url": "https://340bopais.hrsa.gov/Reports",

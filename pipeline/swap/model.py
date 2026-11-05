@@ -22,11 +22,6 @@ OFFSET = 1 / OFFSET_FACTOR - 1   # share of the hospital's (offset-reduced) 2027
 TARGET_OFFSET = 1.6e9      # CMS: the offset reduces OPPS spending about $1.6 billion in CY 2027 (PI pp. 1208-1209)
 
 
-def rate_cut(discount):
-    """Share of each 340B drug dollar removed if CMS paid ASP minus `discount` (0.28 for the final rule)."""
-    return 1 - (1 - discount) / OLD_RATE
-
-
 def drug_share(charge_share, rho):
     """Drugs' share of a hospital's OPPS payments, from their share of its Medicare Part B charges (HCRIS D Part V).
 
