@@ -57,19 +57,55 @@ def kind(ccn):
     return 'other'
 
 
+CLAIMS_YEAR = ('2025-01-01', '2025-12-31')  # CMS modeled CY 2027 from CY 2025 claims (PI p. 1206)
+
+# Acronyms CMS's file title-cases ("Nyu Langone"); restored when they stand as whole words.
+ACRONYMS = {'Nyu', 'Ucsf', 'Ucla', 'Upmc', 'Uab', 'Unc', 'Osf', 'Musc', 'Vcu', 'Ut', 'Uc', 'Ssm', 'Chi', 'Hca', 'Lds', 'Uams',
+            'Ohsu', 'Uci', 'Ucsd', 'Ucd', 'Usa', 'Ii', 'Iii', 'Iv', 'Va', 'Mlk', 'Wvu', 'Ou', 'Ku', 'Psl', 'Hshs', 'Ascension'}
+ACRONYM_EXCEPT = {'Ascension'}
+
+
+def tidy_name(name):
+    words = name.split(' ')
+    return ' '.join(w.upper() if w in ACRONYMS and w not in ACRONYM_EXCEPT else w for w in words)
+
+
+def overlaps(r, lo, hi):
+    """Was this OPAIS registration in force at any time from lo to hi (ISO dates)?"""
+    start = r['start_date'] or '0000'
+    end = r['termination_date'] or '9999'
+    return start <= hi and end >= lo
+
+
+def since_year(records):
+    """First year of the unbroken run of registrations that ends in today's participating one (gaps under 32 days)."""
+    from datetime import date
+    rs = sorted((r for r in records if r['start_date']), key=lambda r: r['start_date'])
+    cur = next((r for r in reversed(rs) if r['participating'] == 'TRUE'), None)
+    if cur is None:
+        return ''
+    first = cur['start_date']
+    changed = True
+    while changed:
+        changed = False
+        for r in rs:
+            if r['start_date'] < first and r['termination_date']:
+                gap = (date.fromisoformat(first) - date.fromisoformat(r['termination_date'])).days
+                if gap < 32:
+                    first = r['start_date']
+                    changed = True
+    return first[:4]
+
+
 def load():
     final = [r for r in read('impacts_final.csv') if r['cmhc'] == 'N']
     proposed = {r['ccn']: r for r in read('impacts_proposed.csv') if r['cmhc'] == 'N'}
     offset = {r['ccn'] for r in read('addendum_r.csv')}
     aaa = {r['ccn']: r for r in read('remedy_aaa.csv')}
     hc = {r['ccn']: r for r in read('hcris_part_b.csv')}
-    op = {}
+    ops = {}
     for r in read('opais_hospitals.csv'):
-        cur = op.get(r['ccn'])
-        if r['participating'] == 'TRUE' and (cur is None or cur['participating'] != 'TRUE' or r['start_date'] < cur['start_date']):
-            op[r['ccn']] = r
-        elif cur is None:
-            op[r['ccn']] = r
+        ops.setdefault(r['ccn'], []).append(r)
     shares = [float(h['drug_charges']) / float(h['total_charges']) for h in hc.values() if float(h['total_charges']) > 0]
     median_share = statistics.median(shares)
     out = []
@@ -77,19 +113,22 @@ def load():
         c = r['ccn']
         h = hc.get(c)
         cs = float(h['drug_charges']) / float(h['total_charges']) if h and float(h['total_charges']) > 0 else None
-        o = op.get(c)
-        participating = bool(o and o['participating'] == 'TRUE')
+        recs = ops.get(c, [])
+        now = [x for x in recs if x['participating'] == 'TRUE']
+        in_2025 = any(overlaps(x, *CLAIMS_YEAR) for x in recs)
         a = aaa.get(c)
         rural_sch = r['rural_sch'] == '1'
-        proprietary = r['ownership'] == '2'
-        candidate = (participating or bool(a and float(a['total']) > 0)) and not rural_sch and not proprietary
+        # 340B in the claims CMS modeled: an OPAIS registration in force during 2025. That outranks the impact file's
+        # ownership code, which can be stale after a sale (a for-profit can't be a 340B hospital).
+        candidate = in_2025 and not rural_sch
         p = proposed.get(c)
+        cur = min(now, key=lambda x: x['start_date']) if now else None
         out.append(dict(
-            r, m=float(r['pay_2026']), n=float(r['pay_2027']), offset=c in offset,
+            r, name=tidy_name(r['name']), m=float(r['pay_2026']), n=float(r['pay_2027']), offset=c in offset,
             charge_share=cs if cs is not None else median_share, has_cost_report=cs is not None,
             aaa_2021=float(a['y2021']) if a else 0.0, aaa_total=float(a['total']) if a else 0.0,
-            participating=participating, op_type=o['entity_type'] if o else '', op_start=o['start_date'] if participating else '',
-            candidate=candidate, use_history=candidate and participating,
+            participating=bool(now), in_2025=in_2025, op_type=cur['entity_type'] if cur else '',
+            op_start=since_year(recs) if now else '', candidate=candidate,
             city=h['city'] if h else '', state=(h['state'] if h and h['state'] else CCN_STATE.get(c[:2], '')),
             kind=kind(c),
             p_net=(float(p['pay_2027']) / float(p['pay_2026']) - 1) if p and float(p['pay_2026']) > 0 else None,
@@ -100,12 +139,16 @@ def load():
 def status(h):
     if h['rural_sch'] == '1':
         return 'exempt'          # rural SCHs (and EACHs) are excepted from the drug cut (PI p. 1212)
+    if h['participating'] and h['in_2025']:
+        return '340b'            # HRSA OPAIS: participating today and during CMS's 2025 claims year
+    if h['participating']:
+        return 'new'             # joined 340B after 2025: CMS's estimate has no cut for it, the real 2027 will
+    if h['in_2025']:
+        return 'left'            # in 340B during 2025, not today: CMS's estimate still carries the cut
     if h['ownership'] == '2':
         return 'proprietary'     # for-profit hospitals can't be 340B covered entities
-    if h['participating']:
-        return '340b'            # HRSA OPAIS, participating today
-    if h['candidate']:
-        return 'history'         # 340B drug claims in 2018-2022 (CMS-1793-F), not participating in OPAIS today
+    if h['aaa_total'] > 0:
+        return 'history'         # 340B drug claims in 2018-2022 (CMS-1793-F), not since
     return 'none'
 
 
@@ -155,8 +198,10 @@ def main():
         'fit': scal, 'table112_rms_points': err, 'table112_worst_group': worst,
         'residual_deciles_340b_pct': resid_c, 'residual_deciles_other_pct': resid_n,
         'breakeven_share': breakeven,
-        'status_counts': {s: sum(1 for r in res if status(r) == s) for s in ('340b', 'history', 'exempt', 'proprietary', 'none')},
+        'status_counts': {s: sum(1 for r in res if status(r) == s) for s in ('340b', 'new', 'left', 'history', 'exempt', 'proprietary', 'none')},
         'no_cost_report': sum(1 for r in res if not r['has_cost_report']),
+        'flipped_to_gain': sum(1 for r in res if r['p_net'] is not None and r['p_net'] < 0 and r['n'] > r['m']),
+        'flipped_to_loss': sum(1 for r in res if r['p_net'] is not None and r['p_net'] >= 0 and r['n'] < r['m']),
     }
     (HERE / 'out').mkdir(exist_ok=True)
     (HERE / 'out' / 'checks.json').write_text(json.dumps(checks, indent=2, default=str) + '\n', encoding='utf-8')

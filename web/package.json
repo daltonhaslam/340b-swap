@@ -1,0 +1,17 @@
+{
+  "name": "340b-swap-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "shot": "node e2e/shot.mjs"
+  },
+  "devDependencies": {
+    "@fontsource-variable/libre-franklin": "5.2.8",
+    "@fontsource-variable/literata": "5.2.8",
+    "esbuild": "0.28.2",
+    "linkedom": "0.18.12",
+    "playwright": "1.64.0"
+  }
+}

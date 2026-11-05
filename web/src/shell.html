@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%TITLE%</title>
+<meta name="description" content="%DESC%">
+<link rel="canonical" href="%URL%">
+<meta property="og:type" content="website">
+<meta property="og:title" content="%TITLE%">
+<meta property="og:description" content="%DESC%">
+<meta property="og:url" content="%URL%">
+<meta property="og:image" content="%URL%/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+%PRELOAD%
+<style>%CSS%</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the page</a>
+<div id="root">%PRERENDER%</div>
+<script type="application/json" id="swap-data">%DATA%</script>
+<script>%JS%</script>
+</body>
+</html>

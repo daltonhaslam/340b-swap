@@ -1,0 +1,53 @@
+/* Color: continuous-form paper and a blue-black ink. Two data colors only: what a hospital gains (blue) and loses (burnt
+   orange), validated for color-vision deficiency against both surfaces. The green-bar band belongs to the statement. */
+:root {
+  color-scheme: light;
+  --paper: #f5f7f4;
+  --paper-raised: #ffffff;
+  --ink: #17242e;
+  --ink-2: #46545e;
+  --ink-3: #6b7780;
+  --rule: #cdd6d0;
+  --rule-strong: #9eaaa3;
+  --greenbar: #e3eee3;
+  --gain: #2f68b3;
+  --loss: #c24d16;
+  --neutral: #8e979d;
+  --focus: #2f68b3;
+  --gain-wash: #dce7f5;
+  --loss-wash: #f6e0d4;
+
+  --font-display: 'Libre Franklin Variable', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
+  --font-text: 'Literata Variable', Georgia, 'Times New Roman', serif;
+
+  /* Type scale: 18px text, a 1.25 ratio stepped by hand where the headline needs more. */
+  --t-small: 0.833rem;
+  --t-body: 1.125rem;
+  --t-lede: 1.3rem;
+  --t-h3: 1.4rem;
+  --t-h2: 2.1rem;
+  --t-h1: clamp(2.4rem, 5.6vw, 4.6rem);
+  --measure: 66ch;
+  --wide: 1120px;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #121a20;
+    --paper-raised: #18222a;
+    --ink: #e6ecea;
+    --ink-2: #b7c2c0;
+    --ink-3: #8c9896;
+    --rule: #2c3a42;
+    --rule-strong: #4b5a62;
+    --greenbar: #1b2a26;
+    --gain: #5b93da;
+    --loss: #d96a35;
+    --neutral: #7d878d;
+    --focus: #8db8ee;
+    --gain-wash: #1d2c3e;
+    --loss-wash: #3a2419;
+  }
+}

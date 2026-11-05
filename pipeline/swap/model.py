@@ -14,8 +14,11 @@ TARGET_CUT = 4.65e9        # CMS: 340B drug payments fall about $4.65 billion, c
 CF_2026 = 91.415           # CY 2026 conversion factor (PI p. 1220)
 CF_2027 = 99.970           # CY 2027 conversion factor (PI p. 110)
 CF_2027_OFFSET = 98.011    # ... for providers subject to the 340B remedy offset (PI p. 110)
-# The offset as a share of a hospital's CY 2026 non-drug payments: the $1.959 conversion-factor gap over the 2026 factor.
-OFFSET = (CF_2027 - CF_2027_OFFSET) / CF_2026
+# The offset factor, $98.011 / $99.970. CMS's impact estimate applies it to a hospital's whole 2027 payment: Table 112
+# column 8 shows -2.0 for every group, drug-heavy ones included, and CMS says the offset "reduces overall provider payment
+# by 2.0 percent" (PI p. 1216). So the offset line is the hospital's 2027 payment over the factor, less the payment.
+OFFSET_FACTOR = CF_2027_OFFSET / CF_2027
+OFFSET = 1 / OFFSET_FACTOR - 1   # share of the hospital's (offset-reduced) 2027 payment that the offset took: 1.999%
 TARGET_OFFSET = 1.6e9      # CMS: the offset reduces OPPS spending about $1.6 billion in CY 2027 (PI pp. 1208-1209)
 
 
@@ -33,15 +36,20 @@ def drug_share(charge_share, rho):
     return rho * charge_share / (rho * charge_share + 1 - charge_share)
 
 
+def offset_dollars(h):
+    """The remedy offset in dollars (negative) as CMS's estimate carries it: 2% off the hospital's whole 2027 payment."""
+    return -OFFSET * h['n'] if h['offset'] else 0.0
+
+
 def implied_340b_share(h, s, everything_else):
     """The 340B drug share of 2026 payments that, with the rule's other parts at their typical size, leaves CMS's net.
 
-    CMS's net = GAIN * non-drug - CUT * 340B drugs - OFFSET * non-drug (if on Addendum R) + everything else, solved for
-    the 340B drugs. `everything_else` is the typical size of the rule's other changes, as a share of 2026 payments.
+    CMS's net = GAIN * non-drug - CUT * 340B drugs - offset (if on Addendum R) + everything else, solved for the 340B
+    drugs. `everything_else` is the typical size of the rule's other changes, as a share of 2026 payments.
     """
     nd = h['m'] * (1 - s)
     net = h['n'] - h['m']
-    b = (GAIN * nd - (OFFSET * nd if h['offset'] else 0) + everything_else * h['m'] - net) / CUT
+    b = (GAIN * nd + offset_dollars(h) + everything_else * h['m'] - net) / CUT
     return b / h['m']
 
 
@@ -49,13 +57,13 @@ def history_340b_share(h, growth):
     """The 340B drug share of 2026 payments from the hospital's own 340B drug history (CMS-1793-F Addendum AAA).
 
     Addendum AAA's yearly figure is what the old ASP - 22.5% rate withheld: 28.5 points of ASP. So a year's 340B drug
-    payments at ASP + 6% were that figure * 1.06 / 0.285. 2021 is the last full year the old rate applied (CMS's 2022
+    payments at ASP + 6% were that figure * 1.06 / 0.285. Returns None for a hospital with no 2021 figure (no history). 2021 is the last full year the old rate applied (CMS's 2022
     column is much smaller and not a full year), so it is the base; a hospital with no 2021 figure has no history.
     `growth` scales 2021 to the CY 2025 claims CMS modeled.
     """
     base = h['aaa_2021']
     if base <= 0:
-        return 0.0
+        return None
     return base * OLD_RATE / 0.285 * growth / h['m']
 
 
@@ -72,17 +80,18 @@ def fit(hospitals, rho, weight):
         h['_s'] = drug_share(h['charge_share'], rho)
         if not h['candidate'] and h['m'] > 1e6:
             nd = h['m'] * (1 - h['_s'])
-            rest.append((h['n'] - h['m'] - GAIN * nd + (OFFSET * nd if h['offset'] else 0)) / h['m'])
+            rest.append((h['n'] - h['m'] - GAIN * nd - offset_dollars(h)) / h['m'])
     everything_else = statistics.median(rest)
     # 2. Two estimates of each candidate's 340B drug share, history grown to match the implied total.
     cand = [h for h in hospitals if h['candidate']]
     for h in cand:
         h['_imp'] = clamp(implied_340b_share(h, h['_s'], everything_else))
-    hist_hospitals = [h for h in cand if h['use_history']]
+    hist_hospitals = [h for h in cand if history_340b_share(h, 1.0) is not None]
     growth = (sum(h['_imp'] * h['m'] for h in hist_hospitals)
               / sum(history_340b_share(h, 1.0) * h['m'] for h in hist_hospitals))
     for h in cand:
-        h['_hist'] = clamp(history_340b_share(h, growth)) if h['use_history'] else None
+        hist = history_340b_share(h, growth)
+        h['_hist'] = None if hist is None else clamp(hist)
         h['_blend'] = h['_imp'] if h['_hist'] is None else weight * h['_imp'] + (1 - weight) * h['_hist']
     # 3. Scale so the drug cut totals CMS's $4.65 billion.
     kappa = TARGET_CUT / (CUT * sum(h['_blend'] * h['m'] for h in cand))
@@ -93,7 +102,7 @@ def fit(hospitals, rho, weight):
         nd = h['m'] * (1 - s)
         cut = -CUT * b * h['m']
         gain = GAIN * nd
-        off = -OFFSET * nd if h['offset'] else 0.0
+        off = offset_dollars(h)
         net = h['n'] - h['m']
         if h['candidate']:
             lo_hi = [clamp(kappa * h['_imp'])] + ([clamp(kappa * h['_hist'])] if h['_hist'] is not None else [])

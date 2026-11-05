@@ -17,7 +17,8 @@ class RuleConstants(unittest.TestCase):
     def test_offset_matches_conversion_factors(self):
         # $99.970 * 0.9804 = $98.011 (PI p. 110)
         self.assertAlmostEqual(99.970 * 0.9804, model.CF_2027_OFFSET, places=3)
-        self.assertAlmostEqual(model.OFFSET, 1.959 / 91.415, places=6)
+        self.assertAlmostEqual(model.OFFSET_FACTOR, 0.9804, places=4)
+        self.assertAlmostEqual(model.OFFSET, 0.01999, places=4)
 
     def test_rate_cut(self):
         self.assertAlmostEqual(model.rate_cut(0.28), model.CUT, places=12)
@@ -39,16 +40,16 @@ class Shares(unittest.TestCase):
         self.assertAlmostEqual(xs[-1], 1.0)
 
     def test_implied_share_round_trip(self):
-        h = dict(m=100.0, offset=True)
         s, b, other = 0.3, 0.2, 0.02
         nd = 100 * (1 - s)
-        h['n'] = 100 + model.GAIN * nd - model.CUT * b * 100 - model.OFFSET * nd + other * 100
+        pre = 100 + model.GAIN * nd - model.CUT * b * 100 + other * 100
+        h = dict(m=100.0, offset=True, n=pre * model.OFFSET_FACTOR)
         self.assertAlmostEqual(model.implied_340b_share(h, s, other), b, places=9)
 
     def test_history_share(self):
         h = dict(m=1.06 / 0.285, aaa_2021=1.0)
         self.assertAlmostEqual(model.history_340b_share(h, 1.0), 1.0)
-        self.assertEqual(model.history_340b_share(dict(m=10, aaa_2021=0), 2.0), 0.0)
+        self.assertIsNone(model.history_340b_share(dict(m=10, aaa_2021=0), 2.0))
 
 
 def toy():
@@ -59,8 +60,8 @@ def toy():
         b = 0.1 + 0.01 * i if cand else 0.0
         s = max(0.15, b)
         nd = m * (1 - s)
-        n = m + model.GAIN * nd - model.CUT * b * m - (model.OFFSET * nd) + 0.02 * m
-        hs.append(dict(ccn='%06d' % i, m=m, n=n, offset=True, charge_share=s, candidate=cand, use_history=cand,
+        n = (m + model.GAIN * nd - model.CUT * b * m + 0.02 * m) * model.OFFSET_FACTOR
+        hs.append(dict(ccn='%06d' % i, m=m, n=n, offset=True, charge_share=s, candidate=cand,
                        aaa_2021=b * m * 0.285 / 1.06 / 2, aaa_total=1.0))
     return hs
 

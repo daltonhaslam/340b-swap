@@ -122,7 +122,13 @@ def opais():
 
 
 # Worksheet D Part V, hospital component, Title XVIII: Medicare Part B charges for services paid under OPPS (column 2).
-DPT5 = {('07300', '00200'): 'drug_charges', ('20200', '00200'): 'total_charges'}
+# Drugs charged to patients is line 73 plus its subscripts (07301-07399), which some hospitals use for most drug charges.
+def dpt5_key(line, col):
+    if col != '00200':
+        return None
+    if line.startswith('073'):
+        return 'drug_charges'
+    return 'total_charges' if line == '20200' else None
 # Worksheet S-2 Part I, line 2: city, state, ZIP.
 S2 = {('00200', '00100'): 'city', ('00200', '00200'): 'state', ('00200', '00300'): 'zip'}
 
@@ -139,9 +145,10 @@ def hcris():
         with z.open(member(z, r'_nmrc\.csv$')) as f:
             for r in csv.reader(io.TextIOWrapper(f, encoding='latin-1')):
                 if r[1] == 'D00A185':
-                    k = DPT5.get((r[2], r[3]))
+                    k = dpt5_key(r[2], r[3])
                     if k:
-                        vals.setdefault(r[0], {})[k] = float(r[4])
+                        d = vals.setdefault(r[0], {})
+                        d[k] = d.get(k, 0.0) + float(r[4])
         with z.open(member(z, r'_alpha\.csv$')) as f:
             for r in csv.reader(io.TextIOWrapper(f, encoding='latin-1')):
                 if r[1] == 'S200001':
