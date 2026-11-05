@@ -1,0 +1,65 @@
+{
+  "hospitals": 3502,
+  "cms_hospitals_table112": 3502,
+  "pay_2026": 83455092459.73999,
+  "pay_2027": 83319371904.4399,
+  "net": -135720555.3000946,
+  "net_pct": -0.16262705042902956,
+  "gainers": 2897,
+  "losers": 605,
+  "unchanged": 0,
+  "drug_cut_total": -4650000000.0,
+  "drug_cut_target": -4650000000.0,
+  "nondrug_raise_total": 4537574889.198116,
+  "nondrug_raise_vs_cut_pct": 97.58225568167992,
+  "offset_total": -1279037524.610405,
+  "offset_cms_estimate": -1600000000.0,
+  "offset_hospitals": 3240,
+  "offset_cms_count_all_providers": 3322,
+  "fit": {
+    "rho": 1.1,
+    "weight": 0.75,
+    "everything_else": 0.02679036730220674,
+    "growth": 2.0687131744613745,
+    "kappa": 0.8067566676561533,
+    "score": 0.18210735678419038
+  },
+  "table112_rms_points": 0.18210735678419038,
+  "table112_worst_group": [
+    "R-PR",
+    1,
+    7.06,
+    9.3
+  ],
+  "residual_deciles_340b_pct": [
+    -0.7,
+    0.3,
+    0.9,
+    1.6,
+    2.1,
+    2.5,
+    2.9,
+    3.7,
+    5.1
+  ],
+  "residual_deciles_other_pct": [
+    -0.3,
+    0.7,
+    1.4,
+    2.0,
+    2.7,
+    3.4,
+    4.1,
+    4.7,
+    5.7
+  ],
+  "breakeven_share": 0.18951132300357565,
+  "status_counts": {
+    "340b": 1040,
+    "history": 315,
+    "exempt": 410,
+    "proprietary": 1056,
+    "none": 681
+  },
+  "no_cost_report": 46
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "name": "impacts_final",
+    "file": "impacts-final/2027-fr-opps-facility-specific-impacts.zip",
+    "url": "https://www.cms.gov/files/zip/2027-fr-opps-facility-specific-impacts.zip",
+    "sha256": "0e398c0f7599573090cec1a737312aa6a72acd77a9612281da0529c26458f95c",
+    "note": "CMS, CY 2027 OPPS final rule (CMS-1850-FC), hospital-specific impact file. Estimated CY 2026 and CY 2027 OPPS payment per hospital, all final policies plus the 340B remedy offset. Posted 2026-11-04."
+  },
+  {
+    "name": "impacts_proposed",
+    "file": "impacts-proposed/2027-nprm-opps-facility-specific-impacts.zip",
+    "url": "https://www.cms.gov/files/zip/2027-nprm-opps-facility-specific-impacts.zip",
+    "sha256": "93bfcb7bfd0a04d25d059c1528c7e83adb98da1dd7db19d94a7feb4e2e47c354",
+    "note": "CMS, CY 2027 OPPS proposed rule (CMS-1850-P), hospital-specific impact file. Same layout as the final file. Posted 2026-07-02."
+  },
+  {
+    "name": "addenda_final",
+    "file": "addenda/2027-fr-opps-addenda.zip",
+    "url": "https://www.cms.gov/files/zip/2027-fr-opps-addenda.zip",
+    "sha256": "dc8a18319a88dbb866455a43287fdcba1be2b8d0a8ff489ae87d8aa3a8a6f095",
+    "note": "CMS, CY 2027 OPPS final rule addenda. Addendum R lists the providers subject to the 340B remedy offset."
+  },
+  {
+    "name": "remedy_aaa",
+    "file": "remedy-aaa/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-aaa.zip",
+    "url": "https://www.cms.gov/files/zip/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-aaa.zip",
+    "sha256": "e074511310b55f1d1c26fea9619c5e645e1cacc2b291949cb99fccb4e3e95655",
+    "note": "CMS, 340B remedy final rule (CMS-1793-F, Nov 2023), Addendum AAA: each hospital's 340B drug payment reduction for CY 2018-2022, repaid as a lump sum."
+  },
+  {
+    "name": "remedy_bbb",
+    "file": "remedy-bbb/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-bbb.zip",
+    "url": "https://www.cms.gov/files/zip/nfrm-opps-remedy-340b-acquired-drug-payment-addendum-bbb.zip",
+    "sha256": "6a37132d560d0f7d8935e79c7556a858a89df3baaf3e1fba2ac4a8405da12a4c",
+    "note": "CMS-1793-F Addendum BBB: new providers (began OPPS billing after 2018-01-01) not subject to the remedy offset."
+  },
+  {
+    "name": "opais",
+    "file": "opais/340B_CoveredEntityJson_Daily_20261105_143545.zip",
+    "url": "https://340bopais.hrsa.gov/Reports",
+    "manual": "The HRSA page builds the file in the browser: open the URL, click 'Covered Entity Daily Export (JSON)', and save the zip into data/raw/opais/.",
+    "sha256": "15e2b58f2d38c26d26ac1ba4c1a3f6da92542524c2439f0672e0b1835c43983d",
+    "note": "HRSA 340B OPAIS covered-entity daily export (JSON), generated 2026-11-05. Only hospital parent records are kept (type, participation, start date, CCN); contact fields are dropped."
+  },
+  {
+    "name": "hcris_fy2023",
+    "file": "hcris/HOSP10FY2023.ZIP",
+    "url": "https://downloads.cms.gov/FILES/HCRIS/HOSP10FY2023.ZIP",
+    "sha256": "fff18bb36d8b448fc7ea5961415307255fe602e0344b8d44b1f7df75b9a6c321",
+    "note": "CMS HCRIS hospital cost reports (form 2552-10), reports beginning in FY 2023. Worksheet D Part V (Medicare Part B charges) and S-2 (city, state, ZIP)."
+  },
+  {
+    "name": "hcris_fy2024",
+    "file": "hcris/HOSP10FY2024.ZIP",
+    "url": "https://downloads.cms.gov/FILES/HCRIS/HOSP10FY2024.ZIP",
+    "sha256": "291749abb7dca4d20aa93e7a5f6c560c4052206a626b8755963a7891b0dc8af2",
+    "note": "As above, FY 2024."
+  },
+  {
+    "name": "hcris_fy2025",
+    "file": "hcris/HOSP10FY2025.ZIP",
+    "url": "https://downloads.cms.gov/FILES/HCRIS/HOSP10FY2025.ZIP",
+    "sha256": "6c6bfd9dfcd0ea76e7fa9628df2f22a2239e7930a109f887e297cf333b832bba",
+    "note": "As above, FY 2025."
+  }
+]
