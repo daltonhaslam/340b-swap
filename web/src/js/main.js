@@ -12,6 +12,7 @@ const CCN = /^[0-9A-Z]{6}$/;
 function boot() {
   const data = decode(JSON.parse(document.getElementById('swap-data').textContent));
   document.getElementById('root').replaceChildren(renderPage(data));
+  document.documentElement.classList.add('js');
 
   const drawer = document.getElementById('drawer');
   const slot = document.getElementById('statement-slot');
@@ -78,7 +79,7 @@ function boot() {
     active = el;
     for (const s of steps) s.classList.toggle('is-active', s === el);
     const mode = el.dataset.mode;
-    if (mode !== 'scatter') { story.setDiscount(0.28); rate.reset(); }
+    if (mode !== 'scatter') rate.reset();
     story.go(mode);
   };
   const io = new IntersectionObserver((entries) => {
@@ -86,8 +87,7 @@ function boot() {
   }, { rootMargin: '-45% 0px -45% 0px' });
   steps.forEach((s) => io.observe(s));
   story.start(steps[0].dataset.mode);
-  active = steps[0];
-  steps[0].classList.add('is-active');
+  activate(steps[0]);
 
   const fromHash = () => {
     let ccn = '';

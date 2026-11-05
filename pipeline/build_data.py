@@ -249,7 +249,7 @@ def write_site(res, scal, checks):
     res = sorted(res, key=lambda r: r['ccn'])
     rows = [[get(r) for _, _, get in COLUMNS] for r in res]
     meta = dict(
-        constants=dict(oldRate=model.OLD_RATE, cut=model.CUT, gain=model.GAIN, targetCut=model.TARGET_CUT,
+        constants=dict(oldRate=model.OLD_RATE, discount=round(1 - model.NEW_RATE, 4), cut=model.CUT, gain=model.GAIN, targetCut=model.TARGET_CUT,
                        cf2027=model.CF_2027, cf2027Offset=model.CF_2027_OFFSET),
         fit={k: round(v, 4) for k, v in scal.items()},
         checks={k: checks[k] for k in PAGE_CHECKS},

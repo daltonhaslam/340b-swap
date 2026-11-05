@@ -1,12 +1,10 @@
 /* Buttons and toggles */
-.chip, .btn, .seg-b {
+.chip, .btn {
   font-size: 0.9rem; font-weight: 560; padding: 0.38rem 0.75rem; border: 1px solid var(--rule-strong);
   border-radius: 3px; background: transparent; color: var(--ink); cursor: pointer; line-height: 1.2;
 }
-.chip:hover, .btn:hover, .seg-b:hover { border-color: var(--ink); }
-.chip[aria-pressed="true"], .seg-b[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.chip-n { color: inherit; opacity: 0.7; font-weight: 450; }
-.seg { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.chip:hover, .btn:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 /* Tooltip shared by the canvases and tiles */
 .tip {

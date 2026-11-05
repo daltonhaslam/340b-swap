@@ -4,7 +4,6 @@ import { h } from './dom.js';
 import { money, count, pct, stateName } from './format.js';
 import { SITE, AS_OF, DISCLAIMER, RULE } from './site.js';
 import { ledger, groupBars, raiseBar, stateTable } from './charts.js';
-import { ROWS } from './story.js';
 
 const pi = (p) => h('span', { class: 'cite' }, `(final rule, p. ${p})`);
 const a = (href, text) => h('a', { href }, text);
@@ -13,24 +12,13 @@ export function renderPage(data) {
   const T = data.totals;
   const C = data.meta.constants;
   const ch = data.meta.checks;
-  const S = T.status;
-  const p340 = S.in340;
+  const G = T.groups;
+  const p340 = G.in340;
   const backTo340 = Math.round(100 * p340.raiseShare);
   const outOf340 = -(p340.cut + p340.gain);
 
-  const rowStats = (test) => {
-    const xs = data.hospitals.filter(test);
-    const m = xs.reduce((s, x) => s + x.m, 0);
-    return { n: xs.length, losers: xs.filter((x) => x.net < 0).length, pct: m ? (100 * xs.reduce((s, x) => s + x.net, 0)) / m : 0 };
-  };
-  const [r340, , rSch, rProp] = ROWS.map((r) => rowStats(r.test));
-  const byState = new Map();
-  for (const x of data.hospitals) {
-    const s = byState.get(x.st) || { st: x.st, m: 0, net: 0 };
-    s.m += x.m; s.net += x.net;
-    byState.set(x.st, s);
-  }
-  const states = [...byState.values()].sort((p, q) => p.net / p.m - q.net / q.m);
+  const { in340: r340, exempt: rSch, proprietary: rProp } = G;
+  const states = T.states;
   const nameList = (xs) => xs.map((s) => stateName(s.st)).join(', ').replace(/, ([^,]*)$/, ' and $1');
 
   const topbar = h('header', { class: 'topbar' },
@@ -57,7 +45,7 @@ export function renderPage(data) {
       step('rows', 'step-2',
         h('h2', null, 'Nearly every loss is in one row'),
         h('p', null, `Sort the same dots by kind of hospital. The top row is the ${count(r340.n)} hospitals that were in 340B during 2025, `
-          + `the year of claims CMS modeled. ${count(r340.losers)} of them get less; together they lose ${pct(r340.pct)}.`),
+          + `the year of claims CMS modeled. ${count(r340.losers)} of them get less, and as a group their payments change ${pct(r340.pct)}.`),
         h('p', null, `For-profit hospitals can’t join 340B. They take no drug cut, keep the whole raise and land together near ${pct(rProp.pct, { digits: 0 })}. `
           + `Rural sole community hospitals are exempt from the cut, so all ${count(rSch.n)} gain.`)),
       step('scatter', 'step-3',

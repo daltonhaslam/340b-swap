@@ -23,8 +23,8 @@
 .lg-dot.pos { background: var(--gain); }
 .steps { grid-column: 1; grid-row: 1; }
 .step { min-height: calc(100svh - var(--bar)); display: flex; align-items: center; padding: 3rem 0; }
-.step-in { max-width: 30rem; opacity: 0.32; transition: opacity 0.35s ease; }
-.step.is-active .step-in, .nojs-page .step-in { opacity: 1; }
+.step-in { max-width: 30rem; transition: opacity 0.35s ease; }
+.js .step:not(.is-active) .step-in { opacity: 0.32; }
 .step h2 { font-size: clamp(1.7rem, 2.6vw, 2.2rem); }
 .step p { font-size: 1.08rem; }
 #step-1 { min-height: calc(100svh - var(--bar)); }
@@ -82,7 +82,7 @@
   .step { order: 2; }
   .field { position: sticky; top: var(--bar); z-index: 5; height: 48svh; background: var(--paper); border-bottom: 1px solid var(--rule); }
   .step { min-height: 70svh; align-items: flex-start; padding: 1.5rem var(--gutter) 3rem; }
-  .step-in { opacity: 1; }
+  .js .step:not(.is-active) .step-in { opacity: 1; }
   #step-1 { min-height: auto; }
   #step-1 h1 { font-size: clamp(2rem, 9vw, 2.8rem); }
   .drawer { top: auto; height: 86svh; width: 100vw; border-left: 0; border-top: 1px solid var(--rule-strong); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 28px rgb(0 0 0 / 0.14); animation-name: sheet-in; }

@@ -3,18 +3,12 @@
 // share against the change, with the rate slider), 'states' (each state's hospitals as a strip, states ranked).
 import { h, palette, sizeCanvas, makeTip } from './dom.js';
 import { pct, count, stateName } from './format.js';
-import { whatIf } from './data.js';
+import { whatIf, GROUPS } from './data.js';
 
 const LO = -30;
 const HI = 30;
 const COLORS = ['gain', 'loss', 'neutral', 'ink', 'ink-2', 'ink-3', 'rule', 'rule-strong', 'paper', 'font-display'];
 
-export const ROWS = [
-  { key: 'in340', label: '340B hospitals in 2025', test: (x) => x.status === '340b' || x.status === 'left' },
-  { key: 'other', label: 'Other nonprofit and public', test: (x) => ['none', 'history', 'new'].includes(x.status) },
-  { key: 'exempt', label: 'Rural sole community (exempt)', test: (x) => x.status === 'exempt' },
-  { key: 'proprietary', label: 'For-profit', test: (x) => x.status === 'proprietary' },
-];
 
 const clampV = (v) => Math.min(HI, Math.max(LO, v));
 
@@ -74,14 +68,28 @@ export function mountStory(field, data, { onSelect }) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const S = {
-    w: 0, h: 0, dpr: 1, mode: null, values: hs.map((x) => x.netPct), discount: 0.28,
-    from: null, to: null, t0: 0, dur: 1100, anim: false, alpha: 1,
+    w: 0, h: 0, dpr: 1, mode: null, values: null, discount: data.meta.constants.discount,
+    t0: 0, dur: 1100, anim: false,
     x: new Float32Array(N), y: new Float32Array(N), r: 2, r0: 2,
     tx: new Float32Array(N), ty: new Float32Array(N), tr: 2,
     fx: new Float32Array(N), fy: new Float32Array(N),
     overlay: null, hover: -1, selected: -1,
   };
   const delay = new Float32Array(N).map((_, i) => ((i * 7919) % 997) / 997);
+  // Static groupings, built once: the rows' members and the states in rank order.
+  const rowIdx = GROUPS.map((g) => hs.map((x, i) => (x.group === g.key ? i : -1)).filter((i) => i >= 0));
+  const base = hs.map((x) => x.netPct);
+  // Dots by color, rebuilt only when the values change (the rate slider), so a frame draws three plain loops.
+  let byColor = null;
+  function sortColors() {
+    const loss = [];
+    const gain = [];
+    const zero = [];
+    S.values.forEach((v, i) => (v < 0 ? loss : v > 0 ? gain : zero).push(i));
+    byColor = [loss, gain, zero];
+  }
+  S.values = base;
+  sortColors();
 
   // ---- layouts ------------------------------------------------------------------------------------------------------
   function pad() { return { l: S.w < 600 ? 14 : 28, r: S.w < 600 ? 14 : 28, t: 30, b: 40 }; }
@@ -104,7 +112,7 @@ export function mountStory(field, data, { onSelect }) {
     rows() {
       const P = { ...pad(), t: 20 };
       const w = S.w - P.l - P.r;
-      const groups = ROWS.map((g) => hs.map((x, i) => (g.test(x) ? i : -1)).filter((i) => i >= 0));
+      const groups = rowIdx;
       const labelH = 22;
       const avail = S.h - P.t - P.b - labelH * groups.length;
       const d = fitPitch(S.values, groups, w, avail);
@@ -112,7 +120,7 @@ export function mountStory(field, data, { onSelect }) {
       const labels = [];
       groups.forEach((g, k) => {
         const hgt = maxColumn(S.values, g, w, d) * d;
-        labels.push({ y: y + 14, text: `${ROWS[k].label}`, n: g.length, losers: g.filter((i) => S.values[i] < 0).length });
+        labels.push({ y: y + 14, text: GROUPS[k].label, n: g.length, losers: g.filter((i) => S.values[i] < 0).length });
         y += labelH;
         stack(S.values, g, P.l, w, y + hgt / 2, d, S.tx, S.ty);
         y += hgt + 6;
@@ -139,13 +147,7 @@ export function mountStory(field, data, { onSelect }) {
       // A ranked ledger: two columns of state strips, from the biggest loser (CMS net, all changes) to the biggest
       // gainer. Each strip packs the state's hospitals in R rows, the ones that get less first.
       const P = { l: S.w < 600 ? 4 : 8, r: 8, t: 32, b: 12 };  // top band keeps the legend clear of the first rows
-      const by = new Map();
-      hs.forEach((x, i) => { if (!by.has(x.st)) by.set(x.st, []); by.get(x.st).push(i); });
-      const rows = [...by.entries()].map(([st, list]) => {
-        const m = list.reduce((s, i) => s + hs[i].m, 0);
-        const net = list.reduce((s, i) => s + hs[i].net, 0);
-        return { st, list: list.slice().sort((p, q) => hs[p].netPct - hs[q].netPct), pct: m ? (100 * net) / m : 0 };
-      }).sort((p, q) => p.pct - q.pct);
+      const rows = data.totals.states.map((s) => ({ st: s.st, list: s.idx, pct: s.pct }));
       const per = Math.ceil(rows.length / 2);
       const gutter = S.w < 600 ? 10 : 24;
       const colW = (S.w - P.l - P.r - gutter) / 2;
@@ -264,16 +266,15 @@ export function mountStory(field, data, { onSelect }) {
     }
     drawOverlay(ctx, S.overlay, S.anim ? Math.max(0, (t - 0.6) / 0.4) : 1);
     const { gain, loss, neutral } = colors;
-    for (const [color, test] of [[loss, (v) => v < 0], [gain, (v) => v > 0], [neutral, (v) => v === 0]]) {
+    [loss, gain, neutral].forEach((color, k) => {
       ctx.fillStyle = color;
       ctx.beginPath();
-      for (let i = 0; i < N; i += 1) {
-        if (!test(S.values[i])) continue;
+      for (const i of byColor[k]) {
         ctx.moveTo(S.x[i] + S.r, S.y[i]);
         ctx.arc(S.x[i], S.y[i], S.r, 0, Math.PI * 2);
       }
       ctx.fill();
-    }
+    });
     ctx.strokeStyle = colors.ink;
     ctx.lineWidth = 2;
     for (const i of [S.hover, S.selected]) {
@@ -370,10 +371,15 @@ export function mountStory(field, data, { onSelect }) {
     return best;
   }
 
+  let moveQueued = null;
   canvas.addEventListener('pointermove', (e) => {
     if (S.anim) return;
-    const b = canvas.getBoundingClientRect();
-    const i = nearest(e.clientX - b.left, e.clientY - b.top);
+    const first = !moveQueued;
+    moveQueued = [e.offsetX, e.offsetY];
+    if (first) requestAnimationFrame(() => { const [px, py] = moveQueued; moveQueued = null; hover(px, py); });
+  });
+  function hover(px, py) {
+    const i = nearest(px, py);
     if (i === S.hover) return;
     S.hover = i;
     if (i < 0) tip.hide();
@@ -386,12 +392,11 @@ export function mountStory(field, data, { onSelect }) {
     }
     canvas.style.cursor = i >= 0 ? 'pointer' : 'default';
     redraw();
-  });
+  }
   canvas.addEventListener('pointerleave', () => { S.hover = -1; tip.hide(); redraw(); });
   canvas.addEventListener('click', (e) => {
     if (S.anim) return;
-    const b = canvas.getBoundingClientRect();
-    const i = nearest(e.clientX - b.left, e.clientY - b.top);
+    const i = nearest(e.offsetX, e.offsetY);
     if (i >= 0) onSelect(hs[i]);
   });
 
@@ -402,7 +407,8 @@ export function mountStory(field, data, { onSelect }) {
     // The rate slider: recolor and move the dots at once (the scatter's y is the change).
     setDiscount(d) {
       S.discount = d;
-      S.values = d === 0.28 ? hs.map((x) => x.netPct) : whatIf(data, d);
+      S.values = d === data.meta.constants.discount ? base : whatIf(data, d);
+      sortColors();
       if (S.mode === 'scatter') {
         S.overlay = LAYOUTS.scatter();
         S.x.set(S.tx);

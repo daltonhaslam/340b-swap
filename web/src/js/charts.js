@@ -2,7 +2,7 @@
 // the rate control that drives the story's scatter.
 import { h } from './dom.js';
 import { money, moneyShort, pct, count, stateName } from './format.js';
-import { cutRate } from './data.js';
+import { cutRate, GROUPS } from './data.js';
 // ---------------------------------------------------------------------------------------------------------------------
 // 1. The ledger: $14.5B of 340B drug payments lose $4.65B; $62B of everything else gains it.
 export function ledger(data) {
@@ -41,7 +41,7 @@ const PRESETS = [
 export function rateControl(data, onRate) {
   const C = data.meta.constants;
   const out = h('p', { class: 'tp-out', id: 'rate-out', role: 'status', 'aria-live': 'polite' });
-  const slider = h('input', { type: 'range', min: '-6', max: '40', step: '0.1', value: '28', id: 'rate', class: 'tp-range',
+  const slider = h('input', { type: 'range', min: '-6', max: '40', step: '0.1', value: String(100 * C.discount), id: 'rate', class: 'tp-range',
     'aria-describedby': 'rate-out' });
   const rateText = h('strong', { class: 'tp-rate' }, 'ASP − 28%');
   const presets = h('div', { class: 'tp-presets', role: 'group', 'aria-label': 'Rates CMS has used or considered' },
@@ -66,12 +66,12 @@ export function rateControl(data, onRate) {
   });
   const el = h('div', { class: 'tp-controls' }, h('label', { for: 'rate', class: 'tp-label' }, 'Medicare pays 340B drugs at ', rateText),
     slider, presets, out);
-  return { el, update, reset() { slider.value = '28'; update(); } };
+  return { el, update, reset() { slider.value = String(100 * C.discount); update(); } };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 // 3. CMS's own 340B effect by hospital group (Table 112, column 4). Not modeled.
-const GROUPS = [
+const T112_GROUPS = [
   ['PROP', 'For-profit'],
   ['RSCH', 'Rural sole community'],
   ['UB0-99', 'Urban, under 100 beds'],
@@ -85,7 +85,7 @@ const GROUPS = [
 
 export function groupBars(data) {
   const T = data.meta.table112;
-  const vals = GROUPS.map(([k, label]) => ({ k, label, n: T[k][0], v: T[k][1] }));
+  const vals = T112_GROUPS.map(([k, label]) => ({ k, label, n: T[k][0], v: T[k][1] }));
   const lim = Math.max(...vals.map((x) => Math.abs(x.v)));
   return h('figure', { class: 'gb' },
     h('div', { class: 'gb-rows', role: 'table', 'aria-label': 'CMS estimate of the 340B change by hospital group' },
@@ -102,13 +102,7 @@ export function groupBars(data) {
 // ---------------------------------------------------------------------------------------------------------------------
 // 4. Where the $4.65B raise lands (modeled): the tall segmented bar.
 export function raiseBar(data) {
-  const S = data.totals.status;
-  const parts = [
-    ['340B hospitals', S.in340],
-    ['Other nonprofit and public hospitals', S.other],
-    ['Rural sole community hospitals', S.exempt],
-    ['For-profit hospitals', S.proprietary],
-  ];
+  const parts = GROUPS.map((g) => [g.label, data.totals.groups[g.key]]);
   return h('figure', { class: 'rb' },
     h('div', { class: 'rb-bar', role: 'img', 'aria-label': parts.map(([l, s]) => `${l}: ${Math.round(100 * s.raiseShare)}%`).join('; ') },
       parts.map(([, s], i) => h('span', { class: `rb-seg s${i}`, style: { width: `${100 * s.raiseShare}%` } }))),
@@ -122,15 +116,7 @@ export function raiseBar(data) {
 // ---------------------------------------------------------------------------------------------------------------------
 // 5. Every state as a table (the dot map's text equivalent).
 export function stateTable(data) {
-  const by = new Map();
-  for (const x of data.hospitals) {
-    const s = by.get(x.st) || { st: x.st, n: 0, n340: 0, m: 0, part: 0, net: 0, losers: 0 };
-    s.n += 1; s.m += x.m; s.part += x.cut + x.gain + x.off; s.net += x.net;
-    if (x.status === '340b' || x.status === 'left') s.n340 += 1;
-    if (x.net < 0) s.losers += 1;
-    by.set(x.st, s);
-  }
-  const rows = [...by.values()].sort((a, b) => a.net / a.m - b.net / b.m);
+  const rows = data.totals.states;
   return h('details', { class: 'more' }, h('summary', null, 'Every state as a table'),
     h('table', { class: 'data-table' },
       h('thead', null, h('tr', null, ['State', 'Hospitals', 'In 340B', 'Get less', '340B parts', 'Every change'].map((t) => h('th', { scope: 'col' }, t)))),
