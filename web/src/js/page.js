@@ -1,9 +1,10 @@
 // The whole page as DOM. Runs at build time (prerender, so the text reads without JavaScript) and again in the browser,
 // where main.js mounts the interactive pieces into the slots.
 import { h } from './dom.js';
-import { money, count } from './format.js';
+import { money, count, pct, stateName } from './format.js';
 import { SITE, AS_OF, DISCLAIMER, RULE } from './site.js';
-import { ledger, groupBars, raiseBar } from './charts.js';
+import { ledger, groupBars, raiseBar, stateTable } from './charts.js';
+import { ROWS } from './story.js';
 
 const pi = (p) => h('span', { class: 'cite' }, `(final rule, p. ${p})`);
 const a = (href, text) => h('a', { href }, text);
@@ -17,28 +18,71 @@ export function renderPage(data) {
   const backTo340 = Math.round(100 * p340.raiseShare);
   const outOf340 = -(p340.cut + p340.gain);
 
-  const masthead = h('header', { class: 'masthead wide' },
-    h('p', { class: 'mast-name' }, SITE.name),
-    h('p', { class: 'mast-by' }, 'Built by ', a(SITE.linkedin, SITE.byline), h('span', { class: 'mast-date' }, `Rules and data as of ${AS_OF}`)));
+  const rowStats = (test) => {
+    const xs = data.hospitals.filter(test);
+    const m = xs.reduce((s, x) => s + x.m, 0);
+    return { n: xs.length, losers: xs.filter((x) => x.net < 0).length, pct: m ? (100 * xs.reduce((s, x) => s + x.net, 0)) / m : 0 };
+  };
+  const [r340, , rSch, rProp] = ROWS.map((r) => rowStats(r.test));
+  const byState = new Map();
+  for (const x of data.hospitals) {
+    const s = byState.get(x.st) || { st: x.st, m: 0, net: 0 };
+    s.m += x.m; s.net += x.net;
+    byState.set(x.st, s);
+  }
+  const states = [...byState.values()].sort((p, q) => p.net / p.m - q.net / q.m);
+  const nameList = (xs) => xs.map((s) => stateName(s.st)).join(', ').replace(/, ([^,]*)$/, ' and $1');
 
-  const hero = h('section', { class: 'hero', 'aria-labelledby': 'h1' },
-    h('div', { class: 'wide' },
-      h('h1', { id: 'h1' }, 'On January 1, Medicare moves ', h('span', { class: 'nowrap' }, '$4.65 billion'), ' between hospitals.'),
-      h('p', { class: 'dek' }, 'It will pay much less for drugs hospitals buy at the 340B discount, and spend the savings paying every hospital 7.5% more '
-        + 'for everything else. Each dot is one hospital, placed by how much CMS expects its 2027 outpatient payments to change.')),
-    h('div', { class: 'wide swarm-block' },
-      h('div', { class: 'swarm-counts' },
-        h('p', { class: 'cnt neg' }, h('strong', null, count(T.losers)), ' hospitals get less'),
-        h('p', { class: 'cnt pos' }, h('strong', null, count(T.gainers)), ' get more')),
-      h('div', { id: 'swarm', class: 'swarm' },
-        h('p', { class: 'nojs' }, `CMS expects ${count(T.losers)} of ${count(T.n)} hospitals to get less in 2027 and ${count(T.gainers)} to get more. `
-          + 'The dot plot needs JavaScript; the per-hospital table is in the download below.')),
-      h('div', { id: 'focus', class: 'focus', role: 'group', 'aria-label': 'Highlight a group of hospitals' }),
-      h('p', { class: 'note' }, 'CMS’s estimate of every 2027 change to outpatient (OPPS) payments, the 340B parts included. Hospitals past 30% either way sit at the edges. '
-        + 'Critical access hospitals and Maryland hospitals are paid another way and aren’t in it.')),
-    h('div', { class: 'wide find-block' },
-      h('div', { id: 'find-slot', class: 'find' }),
-      h('div', { id: 'statement-slot', class: 'statement-slot', 'aria-live': 'polite' })));
+  const topbar = h('header', { class: 'topbar' },
+    h('a', { class: 'brand', href: '#top' }, SITE.name),
+    h('div', { id: 'find-slot', class: 'find' }),
+    h('p', { class: 'byline' }, 'Built by ', a(SITE.linkedin, SITE.byline)));
+
+  const step = (mode, id, ...kids) => h('div', { class: 'step', 'data-mode': mode, id }, h('div', { class: 'step-in' }, ...kids));
+  const story = h('section', { class: 'story', id: 'top', 'aria-label': 'The swap, hospital by hospital' },
+    h('div', { class: 'field', id: 'field' },
+      h('p', { class: 'nojs' }, `CMS expects ${count(T.losers)} of ${count(T.n)} hospitals to get less in 2027 and ${count(T.gainers)} to get more. `
+        + 'The moving dot field needs JavaScript; every number is also in the text and the download below.')),
+    h('div', { class: 'steps' },
+      step('swarm', 'step-1',
+        h('p', { class: 'kicker' }, `Medicare outpatient payments, 2027. As of ${AS_OF}.`),
+        h('h1', { id: 'h1' }, 'On January 1, Medicare moves ', h('span', { class: 'nowrap' }, '$4.65 billion'), ' between hospitals.'),
+        h('p', { class: 'dek' }, 'It will pay much less for drugs hospitals buy at the 340B discount, and spend the savings paying every hospital 7.5% more '
+          + 'for everything else. Each dot is one hospital, placed by how much CMS expects its outpatient payments to change.'),
+        h('div', { class: 'counts' },
+          h('p', { class: 'cnt neg' }, h('strong', null, count(T.losers)), ' hospitals get less'),
+          h('p', { class: 'cnt pos' }, h('strong', null, count(T.gainers)), ' get more')),
+        h('p', { class: 'note' }, 'CMS’s estimate of every 2027 change to outpatient (OPPS) payments. Critical access and Maryland hospitals are paid '
+          + 'another way and aren’t in it. Scroll, or find a hospital above.')),
+      step('rows', 'step-2',
+        h('h2', null, 'Nearly every loss is in one row'),
+        h('p', null, `Sort the same dots by kind of hospital. The top row is the ${count(r340.n)} hospitals that were in 340B during 2025, `
+          + `the year of claims CMS modeled. ${count(r340.losers)} of them get less; together they lose ${pct(r340.pct)}.`),
+        h('p', null, `For-profit hospitals can’t join 340B. They take no drug cut, keep the whole raise and land together near ${pct(rProp.pct, { digits: 0 })}. `
+          + `Rural sole community hospitals are exempt from the cut, so all ${count(rSch.n)} gain.`)),
+      step('scatter', 'step-3',
+        h('h2', null, 'One number decides most hospitals'),
+        h('p', null, `A hospital loses 32 cents of each 340B drug dollar and gains 7.5 cents on each of its other dollars. If all its drugs are 340B, `
+          + `those cancel when 340B drugs are ${Math.round(100 * T.breakeven)}% of its outpatient payments. By this model, `
+          + `${count(data.hospitals.filter((x) => x.b > T.breakeven).length)} of the ${count(p340.n)} 340B hospitals are past that line.`),
+        h('p', null, 'Move the rate. ASP minus 33.4% is what CMS’s 2026 survey of hospitals’ drug costs found and what it proposed in July; '
+          + 'it settled on 28%, built from 340B ceiling prices ', pi('630, 634'), '.'),
+        h('div', { id: 'rate-slot' })),
+      step('states', 'step-4',
+        h('h2', null, 'State by state'),
+        h('p', null, `Each strip is one state’s hospitals, the ones that get less first, ranked by CMS’s estimate of every 2027 change. Hospitals in `
+          + `${nameList(states.slice(0, 3))} lose the most as a share of their payments; ${nameList(states.slice(-3).reverse())} gain the most, `
+          + 'Alaska and Hawaii partly from a new cost-of-living adjustment.'),
+        stateTable(data)),
+      step('swarm', 'step-5',
+        h('h2', null, 'Find a hospital'),
+        h('p', null, 'Search by name, city or CCN in the bar at the top, or tap any dot. Each hospital’s statement splits CMS’s number into the '
+          + 'drug cut, the raise, the remedy offset and everything else.'),
+        h('button', { type: 'button', class: 'btn', id: 'focus-find' }, 'Search for a hospital'))));
+
+  const drawer = h('aside', { class: 'drawer', id: 'drawer', hidden: true, 'aria-labelledby': 'st-name' },
+    h('button', { type: 'button', class: 'drawer-close', id: 'drawer-close', 'aria-label': 'Close the hospital statement' }, '×'),
+    h('div', { id: 'statement-slot' }));
 
   const how = h('section', { class: 'sec', id: 'how', 'aria-labelledby': 'how-h' },
     h('div', { class: 'col' },
@@ -59,21 +103,9 @@ export function renderPage(data) {
         + 'That “remedy offset” was 0.5% a year. In 2027 it becomes 2 points off the payment update, until the money is recovered, '
         + 'which CMS expects in 2031 ', pi('552'), '. It applies to almost every hospital that billed Medicare before 2018, 340B or not.')));
 
-  const tip = h('section', { class: 'sec', id: 'tipping', 'aria-labelledby': 'tp-h' },
-    h('div', { class: 'col' },
-      h('h2', { id: 'tp-h' }, 'One number decides most hospitals'),
-      h('p', null, `A hospital loses 32 cents of each 340B drug dollar and gains 7.5 cents on each of its other dollars. If all its drugs are 340B, `
-        + `those cancel when 340B drugs are ${Math.round(100 * T.breakeven)}% of its Medicare outpatient payments. Above that line, the swap costs it money. `
-        + `About ${Math.round((100 * p340.n) / ch.hospitals)}% of hospitals in CMS’s estimate are 340B hospitals; `
-        + `by this model, ${count(data.hospitals.filter((x) => x.b > T.breakeven).length)} of the ${count(p340.n)} are above the line.`),
-      h('p', null, 'Move the rate to see how the picture shifts. ASP minus 33.4% is what CMS’s 2026 survey of hospitals’ drug costs found, '
-        + 'and what CMS proposed in July. It settled on 28%, a figure built from 340B ceiling prices ', pi('630, 634'), '.')),
-    h('div', { class: 'wide' }, h('div', { id: 'tipping-slot', class: 'tipping' },
-      h('p', { class: 'nojs' }, 'An interactive scatter plot goes here; it needs JavaScript.'))));
-
   const who = h('section', { class: 'sec', id: 'who', 'aria-labelledby': 'who-h' },
     h('div', { class: 'col' },
-      h('h2', { id: 'who-h' }, 'Who comes out ahead'),
+      h('h2', { id: 'who-h' }, 'CMS’s own numbers, by group'),
       h('p', null, 'CMS’s own estimate, by hospital group, before any modeling here. For-profit hospitals can’t join 340B, so they take '
         + 'no drug cut and keep the whole raise. Large teaching hospitals and those with the most low-income patients lose the most.')),
     h('div', { class: 'wide' }, groupBars(data)),
@@ -86,14 +118,6 @@ export function renderPage(data) {
       h('p', null, `The losses are concentrated. Fifty hospitals carry ${Math.round(100 * T.top50LossShare)}% of all the dollars lost. `
         + 'The gains are spread thin across thousands.')));
 
-  const states = h('section', { class: 'sec', id: 'states', 'aria-labelledby': 'st-h' },
-    h('div', { class: 'col' },
-      h('h2', { id: 'st-h' }, 'State by state'),
-      h('p', null, 'The 340B parts (drug cut, raise and offset, as modeled) added up for each state’s hospitals, as a share of their 2026 '
-        + 'outpatient payments. Switch to every 2027 change to see CMS’s full estimate, which also carries Alaska and Hawaii’s new '
-        + 'cost-of-living adjustment and this year’s wage-index changes. Maryland’s hospitals are paid under the state’s own model, so they aren’t here.')),
-    h('div', { class: 'wide' }, h('div', { id: 'states-slot', class: 'states' })));
-
   const changed = h('section', { class: 'sec', id: 'changed', 'aria-labelledby': 'cg-h' },
     h('div', { class: 'col' },
       h('h2', { id: 'cg-h' }, 'What the comment period changed'),
@@ -105,7 +129,7 @@ export function renderPage(data) {
           h('tr', null, h('th', { scope: 'row' }, 'Raise on everything else'), h('td', null, '8.44%'), h('td', null, '7.5%')),
           h('tr', null, h('th', { scope: 'row' }, 'Remedy offset'), h('td', null, '3 points'), h('td', null, '2 points')))),
       h('p', null, `Comparing CMS’s two hospital files, ${count(ch.flipped_to_gain)} hospitals went from losing under the proposal to gaining `
-        + `under the final rule, and ${count(ch.flipped_to_loss)} went the other way. Each hospital’s proposed figure is on its statement above.`),
+        + `under the final rule, and ${count(ch.flipped_to_loss)} went the other way. Each hospital’s proposed figure is on its statement.`),
       h('p', { class: 'small' }, 'Sources: final rule pp. 105–106, 634, 681–682, 1213; proposed and final hospital impact files.')));
 
   const sides = h('section', { class: 'sec', id: 'sides', 'aria-labelledby': 'sd-h' },
@@ -140,8 +164,8 @@ export function renderPage(data) {
         + 'So the split is modeled here, and the last line, everything else, is whatever is left of CMS’s total. The parts always add up to CMS’s number.'),
       h('ul', null,
         h('li', null, h('strong', null, 'Drug share. '), 'From each hospital’s latest cost report (HCRIS, worksheet D part V): Medicare outpatient drug '
-          + `charges as a share of all its Medicare outpatient charges, converted to a payment share with one national factor (${data.meta.fit.rho}) chosen so `
-          + 'the model reproduces CMS’s published results for for-profit and rural hospitals, which have no 340B cut.'),
+          + `charges as a share of all its Medicare outpatient charges, converted to a payment share with one national factor (${data.meta.fit.rho}), `
+          + 'the value that brings the model closest to CMS’s published 340B results for all 50 hospital groups in Table 112.'),
         h('li', null, h('strong', null, '340B drug share. '), 'Two estimates, blended 3 to 1. The first works back from CMS’s total: what 340B share leaves '
           + 'CMS’s number once the raise, the offset and the rule’s typical other changes are counted. The second is the hospital’s own 340B history: what '
           + 'Medicare withheld from it in 2021 under the old cut, from CMS’s 2023 remedy file, grown to today’s volume. All of it is scaled so the national '
@@ -183,6 +207,6 @@ export function renderPage(data) {
       h('p', null, DISCLAIMER),
       h('p', null, 'Built with Claude Code. Every figure is public federal data or a labeled estimate from it.')));
 
-  return h('div', { class: 'page' }, masthead, h('main', { id: 'main' }, hero, how, tip, who, states, changed, sides, methods), footer);
+  return h('div', { class: 'page' }, topbar, h('main', { id: 'main' }, story, h('div', { class: 'after' }, how, who, changed, sides, methods)), drawer, footer);
 }
 

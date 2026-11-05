@@ -41,6 +41,8 @@ def read(name):
 
 
 CLAIMS_YEAR = ('2025-01-01', '2025-12-31')  # CMS modeled CY 2027 from CY 2025 claims (PI p. 1206)
+CUT_STARTS = '2027-01-01'
+EXPORT_DATE = '2026-11-05'  # the OPAIS export's date
 
 # Acronyms CMS's file title-cases ("Nyu Langone"); restored when they stand as whole words.
 ACRONYMS = {'Nyu', 'Ucsf', 'Ucla', 'Upmc', 'Uab', 'Unc', 'Osf', 'Musc', 'Vcu', 'Ut', 'Uc', 'Ssm', 'Chi', 'Hca', 'Lds', 'Uams',
@@ -91,7 +93,10 @@ def load():
         h = hc.get(c)
         cs = float(h['drug_charges']) / float(h['total_charges']) if h and float(h['total_charges']) > 0 else None
         recs = ops.get(c, [])
-        now = [x for x in recs if x['participating'] == 'TRUE']
+        # In 340B when the cut starts: a participating registration not ending by 2027-01-01, or one scheduled to begin
+        # (participating FALSE, starting after the export, no end date yet).
+        now = [x for x in recs if overlaps(x, CUT_STARTS, CUT_STARTS) and x['termination_date'] != CUT_STARTS
+               and (x['participating'] == 'TRUE' or (x['start_date'] > EXPORT_DATE and not x['termination_date']))]
         in_2025 = any(overlaps(x, *CLAIMS_YEAR) for x in recs)
         a = aaa.get(c)
         rural_sch = r['rural_sch'] == '1'
@@ -118,9 +123,9 @@ def status(h):
     if h['participating'] and h['in_2025']:
         return '340b'            # HRSA OPAIS: participating today and during CMS's 2025 claims year
     if h['participating']:
-        return 'new'             # joined 340B after 2025: CMS's estimate has no cut for it, the real 2027 will
+        return 'new'             # in 340B on 2027-01-01 but not in 2025: CMS's estimate has no cut for it, the real 2027 will
     if h['in_2025']:
-        return 'left'            # in 340B during 2025, not today: CMS's estimate still carries the cut
+        return 'left'            # in 340B during 2025, not on 2027-01-01: CMS's estimate still carries the cut
     if h['ownership'] == '2':
         return 'proprietary'     # for-profit hospitals can't be 340B covered entities
     if h['aaa_total'] > 0:

@@ -93,7 +93,7 @@ def fit(hospitals, rho, weight):
     out = []
     for h in hospitals:
         b = clamp(kappa * h['_blend']) if h['candidate'] else 0.0
-        s = max(h['_s'], b / CAP)
+        s = min(max(h['_s'], b), CAP)  # total drugs at least the 340B drugs; some non-drug services always remain
         nd = h['m'] * (1 - s)
         cut = -CUT * b * h['m']
         gain = GAIN * nd

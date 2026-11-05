@@ -29,7 +29,7 @@ const faces = FONTS.map(([family, style, src, slug]) => {
 const fontCss = faces.map((f) => `@font-face{font-family:'${f.family}';font-style:${f.style};font-display:swap;font-weight:100 900;src:url(fonts/${f.name}) format('woff2');}`).join('');
 const preload = faces.filter((f) => f.style === 'normal').map((f) => `<link rel="preload" href="fonts/${f.name}" as="font" type="font/woff2" crossorigin>`).join('\n');
 
-const css = (await transform([fontCss, read('src/styles/tokens.css'), read('src/styles/base.css'), read('src/styles/components.css')].join('\n'),
+const css = (await transform([fontCss, read('src/styles/tokens.css'), read('src/styles/base.css'), read('src/styles/components.css'), read('src/styles/story.css')].join('\n'),
   { loader: 'css', minify: true })).code;
 const js = (await build({ entryPoints: [here('src/js/main.js')], bundle: true, format: 'iife', minify: true, write: false,
   target: 'es2020', legalComments: 'none' })).outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
@@ -60,9 +60,9 @@ const html = read('src/shell.html')
   .replaceAll('%URL%', SITE.url)
   .replace('%PRELOAD%', () => preload)
   .replace('%CSS%', () => css)
-  .replace('%PRERENDER%', () => prerendered)
   .replace('%DATA%', () => raw.trim().replace(/</g, '\\u003c'))
-  .replace('%JS%', () => js);
+  .replace('%JS%', () => js)
+  .replace('%PRERENDER%', () => prerendered);
 writeFileSync(`${DOCS}index.html`, html);
 
 // CSP: the one inline script, by hash.

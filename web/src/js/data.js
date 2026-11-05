@@ -69,10 +69,3 @@ export function whatIf(data, discount) {
 }
 
 export { cutRate };
-
-export function breakevenAt(data, discount) {
-  const C = data.meta.constants;
-  const cut = cutRate(C, discount);
-  const gain = C.gain * (cut / C.cut);
-  return cut > 0 ? gain / (gain + cut) : 1;
-}

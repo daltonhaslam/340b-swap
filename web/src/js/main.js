@@ -1,31 +1,36 @@
-import { h } from './dom.js';
 import { decode } from './data.js';
 import { renderPage } from './page.js';
-import { mountSwarm } from './swarm.js';
+import { mountStory } from './story.js';
 import { mountSearch } from './search.js';
 import { renderStatement } from './statement.js';
 import { saveImage } from './share.js';
-import { tipping, stateTiles } from './charts.js';
+import { rateControl } from './charts.js';
 import { SITE } from './site.js';
 
-const FOCUS = [
-  ['all', 'All hospitals', null],
-  ['340b', '340B hospitals', (x) => x.status === '340b'],
-  ['proprietary', 'For-profit', (x) => x.status === 'proprietary'],
-  ['exempt', 'Rural sole community', (x) => x.status === 'exempt'],
-];
+const CCN = /^[0-9A-Z]{6}$/;
 
 function boot() {
   const data = decode(JSON.parse(document.getElementById('swap-data').textContent));
-  const root = document.getElementById('root');
-  root.replaceChildren(renderPage(data));
+  document.getElementById('root').replaceChildren(renderPage(data));
 
+  const drawer = document.getElementById('drawer');
   const slot = document.getElementById('statement-slot');
-  let swarm = null;
-  let search = null;
+  let lastFocus = null;
+  const field = document.getElementById('field');
+  field.replaceChildren();
+  const story = mountStory(field, data, { onSelect: (x) => select(x) });
+  const search = mountSearch(document.getElementById('find-slot'), data, { onSelect: (x) => select(x) });
 
-  function select(x, { scroll = true, fromHash = false } = {}) {
+  function close() {
+    drawer.hidden = true;
+    story.select(null);
+    history.replaceState(null, '', location.pathname + location.search);
+    if (lastFocus?.isConnected) lastFocus.focus();
+  }
+
+  function select(x, { fromHash = false } = {}) {
     if (!x) return;
+    lastFocus = document.activeElement;
     const msg = () => slot.querySelector('.st-status-msg');
     slot.replaceChildren(renderStatement(x, data, {
       onCopy: async () => {
@@ -47,34 +52,47 @@ function boot() {
         }
       },
     }));
-    swarm?.select(x);
-    search?.setValue(x.name);
+    drawer.hidden = false;
+    drawer.scrollTop = 0;
+    story.select(x);
+    search.setValue(x.name);
     if (!fromHash) history.replaceState(null, '', `#${x.ccn}`);
-    if (scroll) slot.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    document.getElementById('st-name')?.setAttribute('tabindex', '-1');
+    document.getElementById('st-name')?.focus({ preventScroll: true });
   }
 
-  const swarmEl = document.getElementById('swarm');
-  swarmEl.replaceChildren();
-  swarm = mountSwarm(swarmEl, data, { onSelect: (x) => select(x) });
-  search = mountSearch(document.getElementById('find-slot'), data, { onSelect: (x) => select(x) });
+  document.getElementById('drawer-close').addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) close(); });
+  document.getElementById('focus-find')?.addEventListener('click', () => search.input.focus());
 
-  const focus = document.getElementById('focus');
-  focus.append(...FOCUS.map(([k, label, fn], i) => h('button', {
-    type: 'button', class: 'chip', 'aria-pressed': String(i === 0),
-    onclick: (e) => {
-      for (const b of focus.children) b.setAttribute('aria-pressed', String(b === e.currentTarget));
-      swarm.setFocus(fn);
-    },
-  }, label, k === 'all' ? null : h('span', { class: 'chip-n' }, ` ${data.totals.status[k]?.n ?? 0}`))));
+  // The rate slider lives in the scatter step and moves the field's dots.
+  const rate = rateControl(data, (d) => story.setDiscount(d));
+  document.getElementById('rate-slot').append(rate.el);
+  rate.update();
 
-  const tp = document.getElementById('tipping-slot');
-  tp.replaceChildren();
-  tipping(tp, data);
-  stateTiles(document.getElementById('states-slot'), data);
+  // Scroll steps: the step crossing the middle of the viewport sets the field's layout.
+  const steps = [...document.querySelectorAll('.step')];
+  let active = null;
+  const activate = (el) => {
+    if (el === active) return;
+    active = el;
+    for (const s of steps) s.classList.toggle('is-active', s === el);
+    const mode = el.dataset.mode;
+    if (mode !== 'scatter') { story.setDiscount(0.28); rate.reset(); }
+    story.go(mode);
+  };
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) activate(e.target);
+  }, { rootMargin: '-45% 0px -45% 0px' });
+  steps.forEach((s) => io.observe(s));
+  story.start(steps[0].dataset.mode);
+  active = steps[0];
+  steps[0].classList.add('is-active');
 
   const fromHash = () => {
-    const ccn = decodeURIComponent(location.hash.slice(1)).trim();
-    if (/^[0-9A-Z]{6}$/.test(ccn) && data.byCcn.has(ccn)) select(data.byCcn.get(ccn), { fromHash: true });
+    let ccn = '';
+    try { ccn = decodeURIComponent(location.hash.slice(1)).trim(); } catch { return; }
+    if (CCN.test(ccn) && data.byCcn.has(ccn)) select(data.byCcn.get(ccn), { fromHash: true });
   };
   window.addEventListener('hashchange', fromHash);
   fromHash();

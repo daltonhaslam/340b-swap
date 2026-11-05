@@ -47,6 +47,36 @@ assert.match(out, /hospitals get less/);
 await page.click('button.chip:has-text("No cut")');
 assert.match(await page.textContent('#rate-out'), /No 340B cut/);
 
+// Escape closes the statement drawer.
+await page.keyboard.press('Escape');
+assert.equal(await page.isHidden('#drawer'), true);
+
+// Malformed links are ignored without errors.
+await p2.goto(`${base}#%E0%A4`);
+await p2.waitForTimeout(200);
+
+// Phone: tapping a dot in the field opens that hospital's statement.
+const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+const pp = site.watch(await phone.newPage(), 'phone: ');
+await pp.goto(base);
+await pp.evaluate(() => document.getElementById('step-2').scrollIntoView({ block: 'center' }));
+await pp.waitForTimeout(500);
+const box = await pp.locator('.field-canvas').boundingBox();
+const hit = await pp.evaluate(({ x, y, w, h }) => {
+  // Find a canvas pixel that isn't background, scanning a grid, and return page coordinates.
+  const c = document.querySelector('.field-canvas');
+  const ctx = c.getContext('2d');
+  const dpr = c.width / w;
+  for (let yy = 40; yy < h - 40; yy += 3) for (let xx = 20; xx < w - 20; xx += 3) {
+    const d = ctx.getImageData(Math.round(xx * dpr), Math.round(yy * dpr), 1, 1).data;
+    if (d[3] > 200 && (d[2] > d[0] + 40 || d[0] > d[2] + 40)) return { x: x + xx, y: y + yy };
+  }
+  return null;
+}, { x: box.x, y: box.y, w: box.width, h: box.height });
+assert.ok(hit, 'no dot found on the phone field');
+await pp.touchscreen.tap(hit.x, hit.y);
+await pp.waitForSelector('#drawer:not([hidden]) .statement');
+
 assert.deepEqual(errors, []);
 await site.close();
 console.log('smoke: ok');

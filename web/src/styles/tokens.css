@@ -16,6 +16,8 @@
   --focus: #2f68b3;
   --gain-wash: #dce7f5;
   --loss-wash: #f6e0d4;
+  --bar-bg: #17242e;
+  --bar-ink: #f5f7f4;
 
   --font-display: 'Libre Franklin Variable', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif;
   --font-text: 'Literata Variable', Georgia, 'Times New Roman', serif;
@@ -49,5 +51,7 @@
     --focus: #8db8ee;
     --gain-wash: #1d2c3e;
     --loss-wash: #3a2419;
+    --bar-bg: #22313b;
+    --bar-ink: #e6ecea;
   }
 }
