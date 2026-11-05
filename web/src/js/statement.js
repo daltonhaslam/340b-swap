@@ -13,7 +13,7 @@ const TYPE = {
 
 export function statusLine(x) {
   switch (x.status) {
-    case '340b': return `340B hospital: HRSA lists it as a participating ${TYPE[x.opType] || 'hospital'}${x.opStart ? ` since ${x.opStart}` : ''}.`;
+    case '340b': return `340B hospital: HRSA lists it as a participating ${TYPE[x.opType] || 'hospital'}${x.opStart ? ` (current registration since ${x.opStart})` : ''}.`;
     case 'new': return `Joined 340B${x.opStart ? ` in ${x.opStart}` : ''}, after the 2025 claims CMS used, so CMS’s estimate has no drug cut for it. Its actual 2027 cut is likely to be bigger than shown.`;
     case 'left': return 'In 340B during 2025, the claims year CMS used, but HRSA doesn’t list it as participating today. CMS’s estimate still carries the drug cut.';
     case 'history': return 'Billed Medicare for 340B drugs in 2018–2022 (CMS remedy file), but not in 340B during 2025 or today.';

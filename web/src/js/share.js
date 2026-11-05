@@ -1,6 +1,6 @@
 // "Save as image": draws one hospital's statement onto a 1200 x 1200 canvas (a square post image) and downloads it.
 import { money, pct, stateName } from './format.js';
-import { verdict } from './statement.js';
+import { verdict, statusLine } from './statement.js';
 
 function wrapText(ctx, text, x, y, maxW, lineH) {
   const words = text.split(' ');
@@ -69,12 +69,23 @@ export async function saveImage(x, siteUrl) {
     ctx.fillText(money(val, { sign: true }), S - M, top);
     ctx.textAlign = 'left';
   });
+  // CMS's total, ruled off like the bottom line of a remittance.
+  const totalY = y + rows.length * 64 + 8;
+  ctx.fillStyle = P.ink;
+  ctx.fillRect(M - 16, totalY - 40, S - 2 * M + 32, 3);
+  ctx.font = `800 32px ${disp}`;
+  ctx.fillText('CMS’s estimate of the change', M, totalY + 6);
+  ctx.textAlign = 'right';
+  ctx.fillText(money(x.net, { sign: true }), S - M, totalY + 6);
+  ctx.textAlign = 'left';
   ctx.fillStyle = P.ink2;
-  ctx.font = `400 25px ${text}`;
-  ctx.fillText('Total from CMS’s CY 2027 OPPS final rule impact file. Split modeled from public CMS and HRSA data.', M, S - M - 34);
+  ctx.font = `400 26px ${text}`;
+  wrapText(ctx, statusLine(x), M, totalY + 66, S - 2 * M, 36);
+  ctx.font = `400 23px ${text}`;
+  wrapText(ctx, 'Total: CMS, CY 2027 OPPS final rule hospital impact file. Split: modeled from public CMS and HRSA data.', M, S - M - 50, S - 2 * M, 32);
   ctx.font = `600 27px ${disp}`;
   ctx.fillStyle = P.ink;
-  ctx.fillText(siteUrl.replace(/^https?:\/\//, ''), M, S - M + 8);
+  ctx.fillText(siteUrl.replace(/^https?:\/\//, ''), M, S - M + 20);
   const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
