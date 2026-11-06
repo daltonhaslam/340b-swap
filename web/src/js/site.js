@@ -4,6 +4,7 @@ export const SITE = {
   byline: 'Dalton Haslam, MD, MBA',
   linkedin: 'https://www.linkedin.com/in/dalton-haslam',
   repo: 'https://github.com/daltonhaslam/340b-swap',
+  sister: { name: 'Paid & Penalized', url: 'https://paidandpenalized.org' },
 };
 
 // Reader feedback: a shared Google Form, with this site and page prefilled (both visible and editable by the reader).

@@ -197,6 +197,7 @@ export function renderPage(data) {
     h('div', { class: 'col' },
       h('p', null, DISCLAIMER),
       h('p', null, 'Built with Claude Code. Every figure is public federal data or a labeled estimate from it.'),
+      h('p', null, 'Also by the same author: ', a(SITE.sister.url, SITE.sister.name), ', on how Medicare pays and penalizes hospitals.'),
       h('p', { class: 'foot-links' }, a(SITE.repo, 'Code and data on GitHub'), a(FEEDBACK, 'Send feedback or a correction'),
         a('data/340b-swap-cy2027-hospitals.csv', 'Download every hospital (CSV)'))));
 

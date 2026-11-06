@@ -79,5 +79,7 @@ Spot something wrong? Use the feedback link on the site.
 
 Code: MIT (see `LICENSE`). Data: public US federal data.
 
+Also by the same author: [Paid & Penalized](https://paidandpenalized.org), on how Medicare pays and penalizes hospitals.
+
 An independent, personal project. Built by Dalton Haslam, MD, MBA, with Claude Code. Does not represent the work or the
 view of the author's employer, CMS, HRSA, or any hospital, drug maker or industry group.
