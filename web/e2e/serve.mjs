@@ -12,6 +12,8 @@ const headers = Object.fromEntries(vercel.headers[0].headers.map((x) => [x.key, 
 export function serve(port = 0) {
   const server = createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    // Vercel serves its analytics script at this path in production; stand in with an empty script.
+    if (p === '/_vercel/insights/script.js') { res.writeHead(200, { 'Content-Type': 'text/javascript', ...headers }); res.end(''); return; }
     if (p.endsWith('/')) p += 'index.html';
     const file = normalize(join(ROOT, p));
     if (!file.startsWith(ROOT) || !existsSync(file) || statSync(file).isDirectory()) { res.writeHead(404); res.end('not found'); return; }

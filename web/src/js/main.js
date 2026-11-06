@@ -1,3 +1,7 @@
+// Vercel Web Analytics: queue a beforeSend that drops the query and hash (hospital deep links) before anything is sent.
+window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+window.va('beforeSend', (e) => ({ ...e, url: e.url.split(/[?#]/)[0] }));
+
 import { decode } from './data.js';
 import { renderPage } from './page.js';
 import { mountStory } from './story.js';

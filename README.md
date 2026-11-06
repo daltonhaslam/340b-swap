@@ -68,7 +68,7 @@ npm test                             # drives the built page in Chromium
 ```
 
 The output is one self-contained page, `docs/index.html`, with styles, data and script inlined and fonts served from the
-same site (SIL Open Font License). It makes no third-party requests, sets no cookies and has no analytics. The text is
+same site (SIL Open Font License). It makes no third-party requests and sets no cookies. Page views are counted anonymously with Vercel Web Analytics (a same-origin script, no personal identifiers); only the page path is sent, not the hospital in the link. The text is
 prerendered, so it reads without JavaScript; the dot field and the statements need it.
 
 ## Feedback

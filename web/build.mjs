@@ -65,10 +65,10 @@ const html = read('src/shell.html')
   .replace('%PRERENDER%', () => prerendered);
 writeFileSync(`${DOCS}index.html`, html);
 
-// CSP: the one inline script, by hash.
+// CSP: the one inline script, by hash (plus 'self' for Vercel's same-origin analytics script).
 const hash = createHash('sha256').update(js).digest('base64');
 const vercel = JSON.parse(read('../vercel.json'));
 const csp = vercel.headers[0].headers.find((x) => x.key === 'Content-Security-Policy');
-csp.value = csp.value.replace(/script-src [^;]+;/, `script-src 'sha256-${hash}';`);
+csp.value = csp.value.replace(/script-src [^;]+;/, `script-src 'self' 'sha256-${hash}';`);
 writeFileSync(here('../vercel.json'), `${JSON.stringify(vercel, null, 2)}\n`);
 console.log(`docs/index.html ${(html.length / 1024).toFixed(0)} KB; script sha256-${hash}`);
