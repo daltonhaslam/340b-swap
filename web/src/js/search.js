@@ -56,7 +56,8 @@ export function mountSearch(root, data, { onSelect }) {
     h('span', { class: `find-net ${x.net < 0 ? 'neg' : 'pos'}` }, pct(x.netPct)))));
     if (!results.length && input.value.trim()) {
       list.replaceChildren(h('li', { class: 'find-empty', role: 'option', 'aria-disabled': 'true' },
-        'No match. Try fewer words, the city, or the six-character CCN.'));
+        'No match. Maryland hospitals and critical access hospitals aren’t paid this way, so they aren’t here. '
+        + 'Otherwise, try fewer words, the city or the six-character CCN.'));
     }
     list.hidden = !input.value.trim();
     input.setAttribute('aria-expanded', String(!list.hidden));
