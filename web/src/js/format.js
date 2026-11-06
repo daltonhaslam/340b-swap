@@ -1,5 +1,5 @@
 // Number formatting. Minus is U+2212 so signed figures line up and read as numbers.
-const MINUS = '−';
+const MINUS = '\u2212\u2060'; // minus sign, then a word joiner so it never wraps away from its number
 
 export function money(x, { sign = false, digits } = {}) {
   const a = Math.abs(x);

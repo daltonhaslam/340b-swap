@@ -117,7 +117,7 @@ export function mountStory(field, data, { onSelect }) {
       return { kind: 'swarm', ticks: axisTicks(P, S.w < 560 ? [-20, 0, 20] : [-30, -20, -10, 0, 10, 20, 30]), top: P.t, bottom: S.h - P.b };
     },
     rows() {
-      const P = { ...pad(), t: 20 };
+      const P = { ...pad(), t: 34 };  // top band keeps the legend clear of the first row's label
       const w = S.w - P.l - P.r;
       const groups = rowIdx;
       const labelH = 22;

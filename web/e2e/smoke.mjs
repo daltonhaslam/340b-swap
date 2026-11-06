@@ -23,7 +23,7 @@ assert.match(page.url(), /#\d{6}$/);
 
 // The four lines add up to CMS's total (to the dollar rounding on screen, $0.1 million).
 const nums = await page.$$eval('.st-row:not(.st-colhead) .st-amt', (els) => els.map((e) => e.textContent));
-const val = (s) => { const m = /([−+]?)\$([\d.,]+) (million|billion)?/.exec(s); const v = Number(m[2].replace(/,/g, '')) * (m[3] === 'billion' ? 1e3 : m[3] === 'million' ? 1 : 1e-6); return m[1] === '−' ? -v : v; };
+const val = (s) => { const m = /([−+]?)\u2060?\$([\d.,]+) (million|billion)?/.exec(s); const v = Number(m[2].replace(/,/g, '')) * (m[3] === 'billion' ? 1e3 : m[3] === 'million' ? 1 : 1e-6); return m[1] === '−' ? -v : v; };
 const parts = nums.slice(0, 4).map(val).reduce((a, b) => a + b, 0);
 assert.ok(Math.abs(parts - val(nums[4])) <= 0.25, `parts ${parts} vs total ${val(nums[4])}`);
 
