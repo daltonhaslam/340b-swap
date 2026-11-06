@@ -2,7 +2,7 @@
 // where main.js mounts the interactive pieces into the slots.
 import { h } from './dom.js';
 import { money, count, pct, stateName } from './format.js';
-import { SITE, AS_OF, DISCLAIMER, RULE } from './site.js';
+import { SITE, AS_OF, DISCLAIMER, RULE, FEEDBACK } from './site.js';
 import { ledger, groupBars, raiseBar, stateTable } from './charts.js';
 
 const pi = (p) => h('span', { class: 'cite' }, `(final rule, p. ${p})`);
@@ -181,7 +181,9 @@ export function renderPage(data) {
         h('li', null, 'Cost reports are a year or two old, and 340B participation is HRSA’s list on Nov. 5, 2026.'),
         h('li', null, 'Off-campus departments paid under the physician fee schedule also take the 340B cut, without a raise; CMS puts that at '
           + '$640 million and it isn’t in the hospital file (p. 668).')),
-      h('p', null, h('a', { href: 'data/340b-swap-cy2027-hospitals.csv', download: '' }, `Download all ${count(T.n)} hospitals (CSV)`)),
+      h('p', null, h('a', { href: 'data/340b-swap-cy2027-hospitals.csv', download: '' }, `Download all ${count(T.n)} hospitals (CSV)`),
+        '. The code, the pinned list of source files and the model are on ', a(SITE.repo, 'GitHub'),
+        '. Spot something wrong? ', a(FEEDBACK, 'Tell me'), '.'),
       h('h3', null, 'Sources'),
       h('ul', { class: 'sources' },
         h('li', null, a(RULE.pi, RULE.title), ', public-inspection copy, Nov. 4, 2026. Page numbers above refer to it.'),
@@ -194,7 +196,9 @@ export function renderPage(data) {
   const footer = h('footer', { class: 'foot' },
     h('div', { class: 'col' },
       h('p', null, DISCLAIMER),
-      h('p', null, 'Built with Claude Code. Every figure is public federal data or a labeled estimate from it.')));
+      h('p', null, 'Built with Claude Code. Every figure is public federal data or a labeled estimate from it.'),
+      h('p', { class: 'foot-links' }, a(SITE.repo, 'Code and data on GitHub'), a(FEEDBACK, 'Send feedback or a correction'),
+        a('data/340b-swap-cy2027-hospitals.csv', 'Download every hospital (CSV)'))));
 
   return h('div', { class: 'page' }, topbar, h('main', { id: 'main' }, story, h('div', { class: 'after' }, how, who, changed, sides, methods)), drawer, footer);
 }

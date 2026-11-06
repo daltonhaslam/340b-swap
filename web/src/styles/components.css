@@ -176,3 +176,4 @@ details.more summary { cursor: pointer; font-family: var(--font-display); font-w
   .field, .find, .st-actions, .drawer-close { display: none !important; }
   body { background: #fff; }
 }
+.foot-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; margin-top: 0.8rem; }
