@@ -77,7 +77,7 @@ export function renderPage(data) {
     h('div', { class: 'col' },
       h('h2', { id: 'how-h' }, 'Where the $4.65 billion comes from, and where it goes'),
       h('p', null, 'Hospitals that serve many low-income patients can join the federal 340B program and buy outpatient drugs at deep discounts. '
-        + 'Medicare has paid them for those drugs as if they paid full price: the drug’s average sales price (ASP) plus 6%.'),
+        + 'Medicare has paid the same rate for those drugs at every hospital, whatever the hospital paid: the drug’s average sales price (ASP) plus 6%.'),
       h('p', null, 'From January 1, 2027, Medicare pays ASP minus 28% for drugs a hospital bought through 340B. That is 32% less per dose. '
         + 'CMS estimates the cut at $4.65 billion in a year, counting patients’ copays ', pi('1213'), '. The law requires these changes '
         + 'to be budget neutral, so the same $4.65 billion goes back out as a 7.5% raise on everything that isn’t a separately paid drug, '
@@ -88,7 +88,7 @@ export function renderPage(data) {
         + 'Vaccines and new drugs still on pass-through status are exempt too. Every hospital gets the raise.'),
       h('p', null, 'A second, smaller cut rides along. From 2018 to 2022 Medicare paid 340B drugs at ASP minus 22.5%, raised everything else to '
         + 'match, and lost in the Supreme Court (', h('i', null, 'American Hospital Association v. Becerra'), ', 2022). It repaid the 340B '
-        + 'hospitals about $9 billion, then started taking back the $7.8 billion that everything else had been overpaid ', pi('523'), '. '
+        + 'hospitals about $9 billion, then started taking back the $7.8 billion CMS says everything else had been overpaid ', pi('523'), '. '
         + 'That “remedy offset” was 0.5% a year. In 2027 it becomes 2 points off the payment update, until the money is recovered, '
         + 'which CMS expects in 2031 ', pi('552'), '. It applies to almost every hospital that billed Medicare before 2018, 340B or not.')));
 

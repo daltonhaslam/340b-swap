@@ -1,4 +1,5 @@
-// "Save as image": draws one hospital's statement onto a 1200 x 1200 canvas (a square post image) and downloads it.
+// "Save as image": draws one hospital's statement onto a 1200-wide canvas and downloads it. The image is square
+// (1200 x 1200) unless the hospital's status line needs more room; then it grows taller, so no line overlaps the footer.
 import { money, pct, stateName } from './format.js';
 import { verdict, statusLine } from './statement.js';
 
@@ -22,14 +23,14 @@ export async function saveImage(x, siteUrl) {
   const S = 1200;
   const c = document.createElement('canvas');
   c.width = S;
-  c.height = S;
+  c.height = S + 400; // room to grow; cropped to the drawn height below
   const ctx = c.getContext('2d');
   // Always the light palette, so the image reads the same in every feed.
   const P = { paper: '#f5f7f4', ink: '#17242e', ink2: '#46545e', rule: '#cdd6d0', bar: '#e3eee3', gain: '#2f68b3', loss: '#c24d16' };
   const disp = '"Libre Franklin Variable", "Franklin Gothic Medium", Arial, sans-serif';
   const text = '"Literata Variable", Georgia, serif';
   ctx.fillStyle = P.paper;
-  ctx.fillRect(0, 0, S, S);
+  ctx.fillRect(0, 0, S, c.height);
   const M = 84;
   ctx.fillStyle = P.ink2;
   ctx.font = `600 30px ${disp}`;
@@ -80,13 +81,19 @@ export async function saveImage(x, siteUrl) {
   ctx.textAlign = 'left';
   ctx.fillStyle = P.ink2;
   ctx.font = `400 26px ${text}`;
-  wrapText(ctx, statusLine(x), M, totalY + 66, S - 2 * M, 36);
+  const statusEnd = wrapText(ctx, statusLine(x), M, totalY + 66, S - 2 * M, 36);
+  // The footer sits at the square's foot, or below the status line when that runs long.
+  const footY = Math.max(S - M - 50, statusEnd + 12);
   ctx.font = `400 23px ${text}`;
-  wrapText(ctx, 'Total: CMS, CY 2027 OPPS final rule hospital impact file. Split: modeled from public CMS and HRSA data.', M, S - M - 50, S - 2 * M, 32);
+  wrapText(ctx, 'Total: CMS, CY 2027 OPPS final rule hospital impact file. Split: modeled from public CMS and HRSA data.', M, footY, S - 2 * M, 32);
   ctx.font = `600 27px ${disp}`;
   ctx.fillStyle = P.ink;
-  ctx.fillText(siteUrl.replace(/^https?:\/\//, ''), M, S - M + 20);
-  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  ctx.fillText(siteUrl.replace(/^https?:\/\//, ''), M, footY + 70);
+  const out = document.createElement('canvas');
+  out.width = S;
+  out.height = footY + M + 50; // 1200 when the footer sits at its usual place
+  out.getContext('2d').drawImage(c, 0, 0);
+  const blob = await new Promise((res) => out.toBlob(res, 'image/png'));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `340b-swap-${x.ccn}.png`;

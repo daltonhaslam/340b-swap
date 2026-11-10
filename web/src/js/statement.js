@@ -16,9 +16,9 @@ export function statusLine(x) {
     case '340b': return x.opSched
       ? `340B hospital: in 340B during 2025, and HRSA lists a new registration as a ${TYPE[x.opType] || 'hospital'} starting Jan. 1, 2027.`
       : `340B hospital: HRSA lists it as a participating ${TYPE[x.opType] || 'hospital'}${x.opStart ? ` (current registration since ${x.opStart})` : ''}.`;
-    case 'new': return 'In 340B when the cut starts, but not during 2025, the year of claims CMS used, so CMS’s estimate has no drug cut for it. Its actual 2027 is likely to be worse than shown.';
-    case 'left': return 'In 340B during 2025, the year of claims CMS used, but not when the cut starts on Jan. 1, 2027. CMS’s estimate still carries the drug cut, so its actual 2027 is likely to be better than shown.';
-    case 'history': return 'Billed Medicare for 340B drugs in 2018–2022 (CMS remedy file), but not in 340B during 2025 or when the cut starts.';
+    case 'new': return 'On HRSA’s 340B list as of Nov. 5, 2026, but not in 340B during 2025, the year of claims CMS used, so CMS’s estimate has no drug cut for it. If its status holds on Jan. 1, its actual 2027 will differ from CMS’s estimate.';
+    case 'left': return 'In 340B during 2025, the year of claims CMS used, but not on HRSA’s 340B list as of Nov. 5, 2026. CMS’s estimate still includes a drug cut for it; if its status holds on Jan. 1, its actual 2027 will differ from that estimate.';
+    case 'history': return 'Billed Medicare for 340B drugs in 2018–2022 (CMS remedy file), but not in 340B during 2025 or on HRSA’s list as of Nov. 5, 2026.';
     case 'exempt': return 'Rural sole community hospital: exempt from the 340B drug cut.';
     case 'proprietary': return 'For-profit hospital: not eligible for 340B.';
     default: return 'Not a 340B hospital in HRSA or CMS records.';
@@ -26,15 +26,15 @@ export function statusLine(x) {
 }
 
 export function verdict(x) {
-  const lessOrMore = x.net < 0 ? 'Gets less in 2027.' : 'Gets more in 2027.';
+  const lessOrMore = x.net < 0 ? 'CMS estimates it gets less in 2027.' : 'CMS estimates it gets more in 2027.';
   if (x.net < 0) {
     if (x.cut < 0 && -x.cut > x.gain) {
-      return `${lessOrMore} Its 340B drug cut (${money(x.cut)}) is bigger than its 7.5% raise on everything else (${money(x.gain, { sign: true })}).`;
+      return `${lessOrMore} In this site’s model, its 340B drug cut (${money(x.cut)}) is bigger than its 7.5% raise on everything else (${money(x.gain, { sign: true })}).`;
     }
-    return `${lessOrMore} Not mainly because of 340B: the rule's other changes${x.offset ? ' and the remedy offset' : ''} outweigh the raise.`;
+    return `${lessOrMore} In this site’s model, not mainly because of 340B: the rule's other changes${x.offset ? ' and the remedy offset' : ''} outweigh the raise.`;
   }
   if (x.cut < 0) {
-    return `${lessOrMore} Even after its 340B drug cut (${money(x.cut)}), the 7.5% raise on everything else (${money(x.gain, { sign: true })}) wins.`;
+    return `${lessOrMore} In this site’s model, even after its 340B drug cut (${money(x.cut)}), the 7.5% raise on everything else (${money(x.gain, { sign: true })}) wins.`;
   }
   if (x.status === 'exempt') return `${lessOrMore} Rural sole community hospitals keep full drug payments and still get the 7.5% raise.`;
   if (x.status === 'proprietary') return `${lessOrMore} For-profit hospitals can't join 340B, so there is no drug cut, only the raise.`;

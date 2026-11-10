@@ -15,7 +15,8 @@ export const FEEDBACK = `${FORM}?entry.2047320042=${encodeURIComponent(SITE.name
 export const AS_OF = 'Nov. 5, 2026';
 
 export const DISCLAIMER = 'An independent, personal project. It does not represent the work or the view of the author’s employer, CMS, '
-  + 'HRSA, or any hospital, drug maker or industry group.';
+  + 'HRSA, or any hospital, drug maker or industry group. Not affiliated with or endorsed by CMS, HRSA or any hospital. '
+  + 'Estimates, not a forecast of actual payments; not legal, financial or investment advice.';
 
 export const RULE = {
   title: 'CY 2027 OPPS/ASC final rule with comment period (CMS-1850-FC)',
