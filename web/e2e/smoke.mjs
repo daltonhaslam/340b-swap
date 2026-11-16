@@ -1,5 +1,6 @@
 // End-to-end smoke test against the built page: loads clean, search finds and opens a hospital, the statement adds up,
-// the hash link works, Save as image downloads a PNG, the rate slider updates, and no console errors.
+// the hash link works, Save as image downloads a PNG, the rate slider updates, the phone sheet is modal, and no console
+// errors or CSP violations (the Trusted Types policy is report-only, so its violations would only log at info level).
 import { openSite } from './browser.mjs';
 import assert from 'node:assert/strict';
 
@@ -7,6 +8,11 @@ const shots = process.env.SHOTS;
 const site = await openSite();
 const { browser, base, errors } = site;
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+const recordViolations = () => {
+  window.__csp = [];
+  document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(`${e.violatedDirective}: ${e.sample}`));
+};
+await ctx.addInitScript(recordViolations);
 const page = site.watch(await ctx.newPage());
 await page.goto(base);
 if (shots) { await page.waitForTimeout(650); await page.screenshot({ path: `${shots}/anim.png` }); }
@@ -40,14 +46,27 @@ assert.equal(await p2.$('.statement'), null);
 await p2.goto(`${base}#050454`);
 await p2.waitForSelector('.statement');
 
-// Escape closes the statement drawer (it covers the text column, the slider's home).
+// On a wide screen the drawer is a side panel: not a dialog, and the page stays live.
+assert.equal(await page.getAttribute('#drawer', 'role'), null);
+assert.equal(await page.evaluate(() => document.getElementById('main').inert), false);
+
+// Escape closes the statement drawer (it covers the text column, the slider's home) and focus goes back to the search.
 await page.keyboard.press('Escape');
 assert.equal(await page.isHidden('#drawer'), true);
+assert.equal(await page.evaluate(() => document.activeElement.id), 'find');
+
+// The tables scroll inside named regions a keyboard can reach.
+const regions = await page.$$eval('.table-wrap', (els) => els.map((e) => ({ role: e.getAttribute('role'), tab: e.tabIndex,
+  name: e.getAttribute('aria-label') || document.getElementById(e.getAttribute('aria-labelledby'))?.textContent })));
+assert.equal(regions.length, 2);
+for (const r of regions) { assert.equal(r.role, 'region'); assert.equal(r.tab, 0); assert.ok(r.name); }
 
 // Rate slider.
 await page.click('button.chip:has-text("ASP − 33.4%")');
 const out = await page.textContent('#rate-out');
 assert.match(out, /hospitals get less/);
+assert.equal(await page.getAttribute('#rate', 'aria-valuetext'), 'ASP − 33.4%');
+assert.equal(await page.getAttribute('#rate-out', 'aria-live'), null);
 await page.click('button.chip:has-text("No cut")');
 assert.match(await page.textContent('#rate-out'), /No 340B cut/);
 
@@ -77,6 +96,35 @@ assert.ok(hit, 'no dot found on the phone field');
 await pp.touchscreen.tap(hit.x, hit.y);
 await pp.waitForSelector('#drawer:not([hidden]) .statement');
 
+// Phone: the statement is a bottom sheet over the page, so it is a modal dialog and the page behind it is inert.
+const modal = () => pp.evaluate(() => ({ role: document.getElementById('drawer').getAttribute('role'),
+  ariaModal: document.getElementById('drawer').getAttribute('aria-modal'),
+  main: document.getElementById('main').inert, foot: document.querySelector('.foot').inert, focus: document.activeElement.id }));
+assert.deepEqual(await modal(), { role: 'dialog', ariaModal: 'true', main: true, foot: true, focus: 'st-name' });
+// Widening past 900px turns it back into a side panel; narrowing again makes it modal again.
+await pp.setViewportSize({ width: 1280, height: 844 });
+await pp.waitForFunction(() => !document.getElementById('main').inert);
+assert.equal((await modal()).role, null);
+await pp.setViewportSize({ width: 390, height: 844 });
+await pp.waitForFunction(() => document.getElementById('main').inert);
+// Escape closes it and the page comes back.
+await pp.keyboard.press('Escape');
+assert.equal(await pp.isHidden('#drawer'), true);
+assert.deepEqual({ ...(await modal()), focus: undefined }, { role: null, ariaModal: null, main: false, foot: false, focus: undefined });
+// Opened from the search, focus moves into the sheet and returns to the search on close.
+await pp.fill('#find', 'cleveland clinic');
+await pp.waitForSelector('.find-opt');
+await pp.keyboard.press('Enter');
+await pp.waitForSelector('#drawer:not([hidden]) .statement');
+assert.equal((await modal()).focus, 'st-name');
+await pp.keyboard.press('Escape');
+assert.equal(await pp.evaluate(() => document.activeElement.id), 'find');
+
 assert.deepEqual(errors, []);
+for (const pg of [page, p2]) assert.deepEqual(await pg.evaluate(() => window.__csp), []);
+await phone.addInitScript(recordViolations);
+await pp.reload();
+await pp.waitForTimeout(300);
+assert.deepEqual(await pp.evaluate(() => window.__csp), []);
 await site.close();
 console.log('smoke: ok');

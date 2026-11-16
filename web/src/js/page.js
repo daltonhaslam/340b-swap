@@ -23,7 +23,7 @@ export function renderPage(data) {
 
   const topbar = h('header', { class: 'topbar' },
     h('a', { class: 'brand', href: '#top' }, SITE.name),
-    h('div', { id: 'find-slot', class: 'find' }),
+    h('search', { id: 'find-slot', class: 'find' }),
     h('p', { class: 'byline' }, 'Built by ', a(SITE.linkedin, SITE.byline)));
 
   const step = (mode, id, ...kids) => h('div', { class: 'step', 'data-mode': mode, id }, h('div', { class: 'step-in' }, ...kids));
@@ -110,13 +110,13 @@ export function renderPage(data) {
   const changed = h('section', { class: 'sec', id: 'changed', 'aria-labelledby': 'cg-h' },
     h('div', { class: 'col' },
       h('h2', { id: 'cg-h' }, 'What the comment period changed'),
-      h('table', { class: 'data-table compare' },
+      h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-labelledby': 'cg-h' }, h('table', { class: 'data-table compare' },
         h('thead', null, h('tr', null, h('th', { scope: 'col' }, ''), h('th', { scope: 'col' }, 'July proposal'), h('th', { scope: 'col' }, 'November final'))),
         h('tbody', null,
           h('tr', null, h('th', { scope: 'row' }, '340B drug rate'), h('td', null, 'ASP − 33.4%'), h('td', null, 'ASP − 28%')),
           h('tr', null, h('th', { scope: 'row' }, 'Drug cut'), h('td', null, '$4.85 billion'), h('td', null, '$4.65 billion')),
           h('tr', null, h('th', { scope: 'row' }, 'Raise on everything else'), h('td', null, '8.44%'), h('td', null, '7.5%')),
-          h('tr', null, h('th', { scope: 'row' }, 'Remedy offset'), h('td', null, '3 points'), h('td', null, '2 points')))),
+          h('tr', null, h('th', { scope: 'row' }, 'Remedy offset'), h('td', null, '3 points'), h('td', null, '2 points'))))),
       h('p', null, `Comparing CMS’s two hospital files, ${count(ch.flipped_to_gain)} hospitals went from losing under the proposal to gaining `
         + `under the final rule, and ${count(ch.flipped_to_loss)} went the other way. Each hospital’s proposed figure is on its statement.`),
       h('p', { class: 'small' }, 'Sources: final rule pp. 105–106, 634, 681–682, 1213; proposed and final hospital impact files.')));

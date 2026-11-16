@@ -10,6 +10,7 @@ await page.goto(site.base);
 await page.addStyleTag({ content: `
   :root { --bar: 0px; }
   .topbar, .note, .kicker, .drawer, .after, .foot, .skip, .field-legend { display: none !important; }
+  .step-in::before { content: none !important; }
   .story { grid-template-columns: 30rem 1fr !important; }
   #step-1 { min-height: 630px !important; padding: 0 !important; }
   #step-1 h1 { font-size: 60px !important; }

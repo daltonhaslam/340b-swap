@@ -40,7 +40,7 @@ const PRESETS = [
 // The rate slider for the scatter step. `onRate(discount)` returns the hospitals' new changes (percent).
 export function rateControl(data, onRate) {
   const C = data.meta.constants;
-  const out = h('p', { class: 'tp-out', id: 'rate-out', role: 'status', 'aria-live': 'polite' });
+  const out = h('p', { class: 'tp-out', id: 'rate-out', role: 'status' });
   const slider = h('input', { type: 'range', min: '-6', max: '40', step: '0.1', value: String(100 * C.discount), id: 'rate', class: 'tp-range',
     'aria-describedby': 'rate-out' });
   const rateText = h('strong', { class: 'tp-rate' }, 'ASP − 28%');
@@ -53,6 +53,7 @@ export function rateControl(data, onRate) {
     const losers = ys.filter((v) => v < 0).length;
     const cr = cutRate(C, d);
     rateText.textContent = d < 0 ? `ASP + ${Math.round(-d * 1000) / 10}%` : `ASP − ${Math.round(d * 1000) / 10}%`;
+    slider.setAttribute('aria-valuetext', rateText.textContent);
     out.textContent = cr > 0
       ? `${count(losers)} hospitals get less. Everything else gets ${(100 * C.gain * (cr / C.cut)).toFixed(1)}% more. The break-even line doesn’t move: a deeper cut buys a bigger raise.`
       : `No 340B cut and no raise: ${count(losers)} hospitals still get less from the rule’s other changes.`;
@@ -126,10 +127,10 @@ export function raiseBar(data) {
 export function stateTable(data) {
   const rows = data.totals.states;
   return h('details', { class: 'more' }, h('summary', null, 'Every state as a table'),
-    h('table', { class: 'data-table' },
+    h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': 'Every state as a table' }, h('table', { class: 'data-table' },
       h('thead', null, h('tr', null, ['State', 'Hospitals', 'In 340B', 'Get less', '340B parts', 'Every change'].map((t) => h('th', { scope: 'col' }, t)))),
       h('tbody', null, rows.map((s) => h('tr', null, h('th', { scope: 'row' }, stateName(s.st)), h('td', null, count(s.n)), h('td', null, count(s.n340)),
         h('td', null, count(s.losers)),
         h('td', null, `${moneyShort(s.part, { sign: true })} (${pct((100 * s.part) / s.m)})`),
-        h('td', null, `${moneyShort(s.net, { sign: true })} (${pct((100 * s.net) / s.m)})`))))));
+        h('td', null, `${moneyShort(s.net, { sign: true })} (${pct((100 * s.net) / s.m)})`)))))));
 }

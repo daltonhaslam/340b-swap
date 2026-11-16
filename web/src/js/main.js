@@ -26,8 +26,26 @@ function boot() {
   const story = mountStory(field, data, { onSelect: (x) => select(x) });
   const search = mountSearch(document.getElementById('find-slot'), data, { onSelect: (x) => select(x) });
 
+  // At 900px and narrower the drawer is a bottom sheet over the page, so it acts as a modal dialog: the page behind it is
+  // inert. Wider, it is a side panel beside the field and the page stays live. Re-checked when the width crosses 900px.
+  const sheet = window.matchMedia('(max-width: 900px)');
+  const behind = [document.getElementById('main'), document.querySelector('.foot')];
+  function syncModal() {
+    const modal = !drawer.hidden && sheet.matches;
+    for (const el of behind) el.inert = modal;
+    if (modal) {
+      drawer.setAttribute('role', 'dialog');
+      drawer.setAttribute('aria-modal', 'true');
+    } else {
+      drawer.removeAttribute('role');
+      drawer.removeAttribute('aria-modal');
+    }
+  }
+  sheet.addEventListener('change', syncModal);
+
   function close() {
     drawer.hidden = true;
+    syncModal();
     story.select(null);
     history.replaceState(null, '', location.pathname + location.search);
     if (lastFocus?.isConnected) lastFocus.focus();
@@ -58,6 +76,7 @@ function boot() {
       },
     }));
     drawer.hidden = false;
+    syncModal();
     drawer.scrollTop = 0;
     story.select(x);
     search.setValue(x.name);
