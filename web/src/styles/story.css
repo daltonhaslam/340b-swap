@@ -23,9 +23,10 @@
 .lg-dot.pos { background: var(--gain); }
 .steps { grid-column: 1; grid-row: 1; }
 .step { min-height: calc(100svh - var(--bar)); display: flex; align-items: center; padding: 3rem 0; }
-/* The step in play carries an ink rule in the gutter beside it; the others keep full-strength text. */
+/* The step in play carries an ink rule halfway into the gutter beside it (so it can't be clipped); the others keep
+   full-strength text. base.css turns the fade off under prefers-reduced-motion. */
 .step-in { max-width: 30rem; position: relative; }
-.js .step-in::before { content: ''; position: absolute; top: 0; bottom: 0; left: -1.1rem; border-left: 2px solid transparent; transition: border-color 0.35s ease; }
+.js .step-in::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(var(--gutter) / -2); border-left: 2px solid transparent; transition: border-color 0.35s ease; }
 .js .step.is-active .step-in::before { border-left-color: var(--ink); }
 .step h2 { font-size: clamp(1.7rem, 2.6vw, 2.2rem); }
 .step p { font-size: 1.08rem; }

@@ -1,6 +1,7 @@
 // End-to-end smoke test against the built page: loads clean, search finds and opens a hospital, the statement adds up,
 // the hash link works, Save as image downloads a PNG, the rate slider updates, the phone sheet is modal, and no console
-// errors or CSP violations (the Trusted Types policy is report-only, so its violations would only log at info level).
+// errors or CSP violations (a securitypolicyviolation recorder catches report-only Trusted Types violations too, whatever
+// level the browser logs them at).
 import { openSite } from './browser.mjs';
 import assert from 'node:assert/strict';
 
@@ -76,6 +77,7 @@ await p2.waitForTimeout(200);
 
 // Phone: tapping a dot in the field opens that hospital's statement.
 const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+await phone.addInitScript(recordViolations);
 const pp = site.watch(await phone.newPage(), 'phone: ');
 await pp.goto(base);
 await pp.evaluate(() => document.getElementById('step-2').scrollIntoView({ block: 'center' }));
@@ -99,32 +101,37 @@ await pp.waitForSelector('#drawer:not([hidden]) .statement');
 // Phone: the statement is a bottom sheet over the page, so it is a modal dialog and the page behind it is inert.
 const modal = () => pp.evaluate(() => ({ role: document.getElementById('drawer').getAttribute('role'),
   ariaModal: document.getElementById('drawer').getAttribute('aria-modal'),
-  main: document.getElementById('main').inert, foot: document.querySelector('.foot').inert, focus: document.activeElement.id }));
-assert.deepEqual(await modal(), { role: 'dialog', ariaModal: 'true', main: true, foot: true, focus: 'st-name' });
-// Widening past 900px turns it back into a side panel; narrowing again makes it modal again.
+  top: document.querySelector('.topbar').inert, main: document.getElementById('main').inert, foot: document.querySelector('.foot').inert,
+  focus: document.activeElement.id }));
+assert.deepEqual(await modal(), { role: 'dialog', ariaModal: 'true', top: true, main: true, foot: true, focus: 'st-name' });
+// Widening past 900px turns it back into a side panel; narrowing again makes it modal again and pulls focus into it.
 await pp.setViewportSize({ width: 1280, height: 844 });
 await pp.waitForFunction(() => !document.getElementById('main').inert);
 assert.equal((await modal()).role, null);
+await pp.focus('#find');
 await pp.setViewportSize({ width: 390, height: 844 });
 await pp.waitForFunction(() => document.getElementById('main').inert);
+assert.equal((await modal()).focus, 'st-name');
 // Escape closes it and the page comes back.
 await pp.keyboard.press('Escape');
 assert.equal(await pp.isHidden('#drawer'), true);
-assert.deepEqual({ ...(await modal()), focus: undefined }, { role: null, ariaModal: null, main: false, foot: false, focus: undefined });
+assert.deepEqual({ ...(await modal()), focus: undefined }, { role: null, ariaModal: null, top: false, main: false, foot: false, focus: undefined });
 // Opened from the search, focus moves into the sheet and returns to the search on close.
 await pp.fill('#find', 'cleveland clinic');
 await pp.waitForSelector('.find-opt');
 await pp.keyboard.press('Enter');
 await pp.waitForSelector('#drawer:not([hidden]) .statement');
 assert.equal((await modal()).focus, 'st-name');
+// A second hospital opened by link while the sheet is open: closing still returns focus to the search.
+const firstName = await pp.textContent('#st-name');
+await pp.evaluate(() => { location.hash = '050454'; });
+await pp.waitForFunction((n) => document.getElementById('st-name')?.textContent !== n, firstName);
+await pp.waitForFunction(() => document.activeElement.id === 'st-name');
 await pp.keyboard.press('Escape');
 assert.equal(await pp.evaluate(() => document.activeElement.id), 'find');
 
 assert.deepEqual(errors, []);
 for (const pg of [page, p2]) assert.deepEqual(await pg.evaluate(() => window.__csp), []);
-await phone.addInitScript(recordViolations);
-await pp.reload();
-await pp.waitForTimeout(300);
 assert.deepEqual(await pp.evaluate(() => window.__csp), []);
 await site.close();
 console.log('smoke: ok');

@@ -26,12 +26,17 @@ function boot() {
   const story = mountStory(field, data, { onSelect: (x) => select(x) });
   const search = mountSearch(document.getElementById('find-slot'), data, { onSelect: (x) => select(x) });
 
-  // At 900px and narrower the drawer is a bottom sheet over the page, so it acts as a modal dialog: the page behind it is
-  // inert. Wider, it is a side panel beside the field and the page stays live. Re-checked when the width crosses 900px.
+  // At 900px and narrower the drawer is a bottom sheet over the page, so it acts as a modal dialog: everything else,
+  // the top bar included, is inert (close the sheet to search again). Wider, it is a side panel beside the field and the
+  // page stays live. Re-checked when the width crosses 900px.
   const sheet = window.matchMedia('(max-width: 900px)');
-  const behind = [document.getElementById('main'), document.querySelector('.foot')];
+  const behind = [document.querySelector('.topbar'), document.getElementById('main'), document.querySelector('.foot')];
   function syncModal() {
     const modal = !drawer.hidden && sheet.matches;
+    // Focus can't stay on what is about to go inert: move it into the sheet first.
+    if (modal && !drawer.contains(document.activeElement)) {
+      (document.getElementById('st-name') || document.getElementById('drawer-close')).focus({ preventScroll: true });
+    }
     for (const el of behind) el.inert = modal;
     if (modal) {
       drawer.setAttribute('role', 'dialog');
@@ -53,7 +58,8 @@ function boot() {
 
   function select(x, { fromHash = false } = {}) {
     if (!x) return;
-    lastFocus = document.activeElement;
+    // Remember the opener, not a control inside the drawer, so a re-select while it is open still returns focus there.
+    if (drawer.hidden || !drawer.contains(document.activeElement)) lastFocus = document.activeElement;
     const msg = () => slot.querySelector('.st-status-msg');
     slot.replaceChildren(renderStatement(x, data, {
       onCopy: async () => {
@@ -75,13 +81,13 @@ function boot() {
         }
       },
     }));
+    document.getElementById('st-name')?.setAttribute('tabindex', '-1');
     drawer.hidden = false;
     syncModal();
     drawer.scrollTop = 0;
     story.select(x);
     search.setValue(x.name);
     if (!fromHash) history.replaceState(null, '', `#${x.ccn}`);
-    document.getElementById('st-name')?.setAttribute('tabindex', '-1');
     document.getElementById('st-name')?.focus({ preventScroll: true });
   }
 
