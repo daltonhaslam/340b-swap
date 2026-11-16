@@ -111,10 +111,9 @@
   .st-seg, .gb-bar, .lg-seg, .rb-seg, .rb-key { forced-color-adjust: none; background: Canvas; border: 1px solid CanvasText; }
   .st-seg.gain, .gb-bar.gain, .lg-seg.gain, .rb-seg.s0, .rb-key.s0 { background: Highlight; border-color: Highlight; }
   .st-seg.loss, .gb-bar.loss, .lg-seg.loss { background: repeating-linear-gradient(135deg, CanvasText 0 3px, Canvas 3px 6px); }
-  .st-seg.hatch { background: repeating-linear-gradient(45deg, CanvasText 0 1px, Canvas 1px 4px); }
+  .st-seg.hatch, .rb-seg.s2, .rb-key.s2 { background: repeating-linear-gradient(45deg, CanvasText 0 1px, Canvas 1px 4px); }
   .st-row.muted .st-seg, .lg-seg.keep { background: Canvas; border-color: GrayText; }
   .rb-seg.s1, .rb-key.s1 { background: repeating-linear-gradient(135deg, Highlight 0 3px, Canvas 3px 6px); }
-  .rb-seg.s2, .rb-key.s2 { background: repeating-linear-gradient(45deg, CanvasText 0 1px, Canvas 1px 4px); }
   .st-zero, .gb-track::before { forced-color-adjust: none; background: GrayText; }
   .lg-in { forced-color-adjust: auto; }
   .lg-dot, .cnt strong::before { forced-color-adjust: none; }
